@@ -1,0 +1,24 @@
+namespace Belumi.Core.DTOs;
+
+public sealed record ProductDto(
+    Guid Id,
+    string Name,
+    string Description,
+    string Ingredients,
+    string Benefits,
+    decimal Price,
+    string? ThumbnailUrl,
+    Guid CategoryId,
+    string? CategoryName,
+    IReadOnlyCollection<string> Images);
+
+public sealed record ContactRequestDto(string FullName, string Phone, string? Email, string Message);
+public sealed record SkinAnalysisRequest(string ImageUrl);
+public sealed record SkinAnalysisResult(Guid Id, string ImageUrl, string SkinType, string Concerns, string Recommendations, int Score, DateTime AnalyzedAt);
+public sealed record BeautyProfileRequest(string? SkinType, string? SkinConcerns, string? Allergies);
+public sealed record IngredientLookupRequest(string TextOrImageUrl);
+public sealed record IngredientLookupResult(string Summary, IReadOnlyCollection<string> SafeIngredients, IReadOnlyCollection<string> Watchlist, IReadOnlyCollection<string> Recommendations);
+public sealed record MakeupConsultationRequest(string SkinTone, string Occasion, string Style);
+public sealed record MakeupConsultationResult(string LookName, string Base, string Eyes, string Lips, IReadOnlyCollection<string> ProductSuggestions);
+public sealed record PaymentQrRequest(string PlanCode, string CustomerEmail);
+public sealed record PaymentQrResponse(string PlanCode, decimal Amount, string BankCode, string AccountNumber, string Description, string VietQrUrl);

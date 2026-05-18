@@ -1,0 +1,6 @@
+@Belumi.API_HostAddress = http://localhost:5151
+
+GET {{Belumi.API_HostAddress}}/weatherforecast/
+Accept: application/json
+
+###
