@@ -8,4 +8,7 @@ public interface IAiBeautyService
     IngredientLookupResult LookupIngredients(IngredientLookupRequest request);
     MakeupConsultationResult ConsultMakeup(MakeupConsultationRequest request);
     Task<IReadOnlyCollection<MakeupCatalogItem>> GetMakeupCatalogAsync(CancellationToken cancellationToken);
+    
+    // AI Context Engineering
+    Task<string> BuildSkinConsultationContextAsync(Guid userId);
 }

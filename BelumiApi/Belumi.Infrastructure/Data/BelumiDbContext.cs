@@ -17,6 +17,7 @@ public sealed class BelumiDbContext(DbContextOptions<BelumiDbContext> options) :
     public DbSet<BeautyProfile> BeautyProfiles => Set<BeautyProfile>();
     public DbSet<WishlistItem> WishlistItems => Set<WishlistItem>();
     public DbSet<MakeupCatalogItem> MakeupCatalogItems => Set<MakeupCatalogItem>();
+    public DbSet<Ingredient> Ingredients => Set<Ingredient>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {

@@ -146,5 +146,12 @@ public static class BelumiSeedData
             });
 
         await db.SaveChangesAsync();
+
+        // Seed 500 Ingredients (Task 16)
+        if (!await db.Ingredients.AnyAsync())
+        {
+            db.Ingredients.AddRange(IngredientSeedData.Generate());
+            await db.SaveChangesAsync();
+        }
     }
 }

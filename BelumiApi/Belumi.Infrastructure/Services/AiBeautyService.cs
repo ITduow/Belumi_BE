@@ -43,4 +43,46 @@ public sealed class AiBeautyService(BelumiDbContext db) : IAiBeautyService
 
     public async Task<IReadOnlyCollection<MakeupCatalogItem>> GetMakeupCatalogAsync(CancellationToken cancellationToken) =>
         await db.MakeupCatalogItems.AsNoTracking().OrderBy(x => x.ProductType).ToListAsync(cancellationToken);
+
+    public async Task<string> BuildSkinConsultationContextAsync(Guid userId)
+    {
+        // 1. Thu thập User Context
+        var user = await db.Users.Include(u => u.BeautyProfile)
+                                 .FirstOrDefaultAsync(u => u.Id == userId);
+                                 
+        if (user == null || user.BeautyProfile == null)
+        {
+            return "Vui lòng cập nhật hồ sơ làm đẹp (Beauty Profile) để sử dụng tính năng này.";
+        }
+
+        // 2. Thu thập Domain Context (Mock cho đến khi Task 16 hoàn thành)
+        // Khi làm xong Task 16, chúng ta có thể lấy danh sách này từ bảng Ingredients:
+        // var unsafeIngredients = await db.Ingredients.Where(i => i.SafetyRating == "Caution").Select(i => i.Name).ToListAsync();
+        var unsafeIngredients = new List<string> { "Salicylic Acid", "Retinol", "Benzoyl Peroxide", "Kojic Acid" };
+
+        var cautionRule = string.Empty;
+        if ((user.BeautyProfile.SkinType ?? "").Contains("Sensitive", StringComparison.OrdinalIgnoreCase))
+        {
+            cautionRule = $"- KHÔNG BAO GIỜ khuyên dùng các thành phần sau vì khách hàng có da yếu: {string.Join(", ", unsafeIngredients)}.";
+        }
+
+        // 3. Xây dựng Context Prompt (Context Injection)
+        var contextPrompt = $@"
+Bạn là bác sĩ da liễu độc quyền của hệ thống Belumi.
+THÔNG TIN KHÁCH HÀNG:
+- Tên khách hàng: {user.FullName}
+- Loại da: {user.BeautyProfile.SkinType}
+- Vấn đề da: {user.BeautyProfile.SkinConcerns}
+- Dị ứng: {user.BeautyProfile.Allergies}
+
+LUẬT AN TOÀN (BẮT BUỘC TUÂN THỦ):
+{cautionRule}
+- Nếu khách hàng có dị ứng, tuyệt đối tránh xa các thành phần gây dị ứng đó.
+- Luôn trả về kết quả dưới định dạng chuyên nghiệp, dễ hiểu.
+
+Dựa vào ngữ cảnh trên, hãy đưa ra lộ trình chăm sóc da cho khách hàng này.
+";
+
+        return contextPrompt.Trim();
+    }
 }
