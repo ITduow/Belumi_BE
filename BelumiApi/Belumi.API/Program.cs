@@ -2,6 +2,7 @@ using System.Text;
 using Belumi.Infrastructure.Data;
 using Belumi.Infrastructure;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -33,11 +34,10 @@ builder.Services.AddInfrastructure(builder.Configuration);
 
 var app = builder.Build();
 
-if (app.Environment.IsDevelopment())
-{
-    app.UseSwagger();
-    app.UseSwaggerUI();
-}
+// Task 18: Bật Swagger cả production (Railway) để test dễ dàng
+app.UseSwagger();
+app.UseSwaggerUI();
+
 
 app.UseHttpsRedirection();
 app.UseCors("BelumiApp");
@@ -48,8 +48,12 @@ app.MapControllers();
 using (var scope = app.Services.CreateScope())
 {
     var db = scope.ServiceProvider.GetRequiredService<BelumiDbContext>();
-    await db.Database.EnsureCreatedAsync();
+    await db.Database.MigrateAsync(); // Task 18: Auto-apply migrations khi start
     await BelumiSeedData.SeedAsync(db);
+
+    // Task 18: Import từ CSV nếu có file (chạy được cả local lẫn Railway)
+    var csvPath = Path.Combine(AppContext.BaseDirectory, "ingredients.csv");
+    await Belumi.Infrastructure.Services.CsvIngredientImporter.ImportFromCsvAsync(db, csvPath);
 }
 
 app.Run();

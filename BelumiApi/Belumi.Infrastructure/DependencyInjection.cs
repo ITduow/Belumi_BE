@@ -12,8 +12,12 @@ public static class DependencyInjection
 {
     public static IServiceCollection AddInfrastructure(this IServiceCollection services, IConfiguration configuration)
     {
-        var connectionString = configuration.GetConnectionString("DefaultConnection")
+        // Task 18: Hỗ trợ Railway DATABASE_URL (production) hoặc appsettings (local)
+        var connectionString =
+            Environment.GetEnvironmentVariable("DATABASE_URL")
+            ?? configuration.GetConnectionString("DefaultConnection")
             ?? "Host=localhost;Port=5432;Database=belumi;Username=postgres;Password=12345";
+
 
         services.AddDbContext<BelumiDbContext>(options => options.UseNpgsql(connectionString));
         services.AddSingleton<FirebaseAdminAppFactory>();
