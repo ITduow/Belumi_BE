@@ -118,8 +118,47 @@ public sealed class AuthService(
         return ToResponse(user);
     }
 
+    public async Task<AuthResponse> RefreshTokenAsync(string refreshToken, CancellationToken cancellationToken)
+    {
+        var token = await db.RefreshTokens
+            .Include(t => t.User)
+            .FirstOrDefaultAsync(t => t.Token == refreshToken, cancellationToken);
+
+        if (token is null || token.IsRevoked || token.ExpiresAt < DateTime.UtcNow)
+            throw new UnauthorizedAccessException("Invalid or expired refresh token.");
+
+        token.IsRevoked = true;
+        await db.SaveChangesAsync(cancellationToken);
+
+        return await ToResponseWithRefreshAsync(token.User!, cancellationToken);
+    }
+
+    public async Task RevokeTokenAsync(string refreshToken, CancellationToken cancellationToken)
+    {
+        var token = await db.RefreshTokens
+            .FirstOrDefaultAsync(t => t.Token == refreshToken, cancellationToken);
+
+        if (token is null) return;
+        token.IsRevoked = true;
+        await db.SaveChangesAsync(cancellationToken);
+    }
+
     private AuthResponse ToResponse(User user) =>
         new(user.Id, user.Email, user.FullName, user.Phone, user.Role, CreateToken(user));
+
+    private async Task<AuthResponse> ToResponseWithRefreshAsync(User user, CancellationToken cancellationToken)
+    {
+        var refreshToken = new Belumi.Core.Entities.RefreshToken
+        {
+            UserId = user.Id,
+            Token = Convert.ToBase64String(System.Security.Cryptography.RandomNumberGenerator.GetBytes(64)),
+            ExpiresAt = DateTime.UtcNow.AddDays(30)
+        };
+        db.RefreshTokens.Add(refreshToken);
+        await db.SaveChangesAsync(cancellationToken);
+
+        return new(user.Id, user.Email, user.FullName, user.Phone, user.Role, CreateToken(user), refreshToken.Token);
+    }
 
     private string CreateToken(User user)
     {
@@ -142,3 +181,4 @@ public sealed class AuthService(
             signingCredentials: credentials));
     }
 }
+

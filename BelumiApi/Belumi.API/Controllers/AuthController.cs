@@ -67,4 +67,24 @@ public sealed class AuthController(IAuthService authService) : ControllerBase
             return await Login(new LoginRequest(request.Email, "GoogleMock@2026"), cancellationToken);
         }
     }
+
+    [HttpPost("refresh-token")]
+    public async Task<ActionResult<AuthResponse>> RefreshToken(RefreshTokenRequest request, CancellationToken cancellationToken)
+    {
+        try
+        {
+            return Ok(await authService.RefreshTokenAsync(request.RefreshToken, cancellationToken));
+        }
+        catch (UnauthorizedAccessException ex)
+        {
+            return Unauthorized(new { message = ex.Message });
+        }
+    }
+
+    [HttpPost("revoke-token")]
+    public async Task<IActionResult> RevokeToken(RefreshTokenRequest request, CancellationToken cancellationToken)
+    {
+        await authService.RevokeTokenAsync(request.RefreshToken, cancellationToken);
+        return NoContent();
+    }
 }
