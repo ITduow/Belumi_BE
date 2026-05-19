@@ -1,4 +1,5 @@
 using System.Text;
+using Belumi.API.Middleware;
 using Belumi.Infrastructure.Data;
 using Belumi.Infrastructure;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
@@ -40,6 +41,7 @@ app.UseSwaggerUI();
 
 
 app.UseHttpsRedirection();
+app.UseImageResize(); // Task 20: Middleware resize avatar
 app.UseCors("BelumiApp");
 app.UseAuthentication();
 app.UseAuthorization();
