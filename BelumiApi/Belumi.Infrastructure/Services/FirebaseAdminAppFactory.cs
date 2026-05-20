@@ -31,6 +31,11 @@ public sealed class FirebaseAdminAppFactory(IConfiguration configuration)
                     "Firebase service account is not configured. Set GOOGLE_APPLICATION_CREDENTIALS or Firebase:ServiceAccountPath.");
             }
 
+            if (!Path.IsPathRooted(credentialPath))
+            {
+                credentialPath = Path.Combine(AppContext.BaseDirectory, credentialPath);
+            }
+
             if (!File.Exists(credentialPath))
             {
                 throw new InvalidOperationException($"Firebase service account file was not found: {credentialPath}");

@@ -23,4 +23,13 @@
     <ProjectReference Include="..\Belumi.Application\Belumi.Application.csproj" />
   </ItemGroup>
 
+  <ItemGroup>
+    <None Update="ingredients.csv">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Update="Firebase\serviceAccountKey.json">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+  </ItemGroup>
+
 </Project>

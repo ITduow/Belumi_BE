@@ -50,4 +50,14 @@ public sealed class UserInteractionService(BelumiDbContext db) : IUserInteractio
         await db.SaveChangesAsync(cancellationToken);
         return profile;
     }
+
+    public async Task UpdateAvatarAsync(Guid userId, string avatarUrl, CancellationToken cancellationToken)
+    {
+        var user = await db.Users.FirstOrDefaultAsync(x => x.Id == userId, cancellationToken);
+        if (user is not null)
+        {
+            user.AvatarUrl = avatarUrl;
+            await db.SaveChangesAsync(cancellationToken);
+        }
+    }
 }

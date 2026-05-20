@@ -41,6 +41,7 @@ app.UseSwaggerUI();
 
 
 app.UseHttpsRedirection();
+app.UseStaticFiles(); // Task 20: Enable serving uploaded static files under wwwroot
 app.UseImageResize(); // Task 20: Middleware resize avatar
 app.UseCors("BelumiApp");
 app.UseAuthentication();
