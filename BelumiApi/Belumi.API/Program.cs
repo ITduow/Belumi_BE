@@ -1,9 +1,11 @@
+using System.Text;
 using Belumi.API.Common;
 using Belumi.Application.Validators;
-using Belumi.Infrastructure;
 using Belumi.Infrastructure.Data;
+using Belumi.Infrastructure;
 using FluentValidation;
-using Microsoft.AspNetCore.Authentication;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.IdentityModel.Tokens;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -12,7 +14,7 @@ builder.Services.AddControllers(options =>
     options.Filters.Add<ValidationFilter>();
 });
 
-builder.Services.AddValidatorsFromAssemblyContaining<FirebaseLoginRequestValidator>();
+builder.Services.AddValidatorsFromAssemblyContaining<LoginRequestValidator>();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 builder.Services.AddCors(options =>
@@ -21,10 +23,18 @@ builder.Services.AddCors(options =>
         policy.AllowAnyHeader().AllowAnyMethod().AllowAnyOrigin());
 });
 
-builder.Services.AddAuthentication(BelumiBearerAuthenticationHandler.SchemeName)
-    .AddScheme<AuthenticationSchemeOptions, BelumiBearerAuthenticationHandler>(
-        BelumiBearerAuthenticationHandler.SchemeName,
-        options => { });
+var jwtKey = builder.Configuration["Jwt:Key"] ?? "BelumiBeautyLocalDevelopmentKeyMustBeLong";
+builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
+    .AddJwtBearer(options =>
+    {
+        options.TokenValidationParameters = new TokenValidationParameters
+        {
+            ValidateIssuer = false,
+            ValidateAudience = false,
+            ValidateIssuerSigningKey = true,
+            IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtKey))
+        };
+    });
 builder.Services.AddAuthorization();
 
 builder.Services.AddInfrastructure(builder.Configuration);
