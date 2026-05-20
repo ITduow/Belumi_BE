@@ -1,0 +1,19 @@
+version: '3.8'
+
+services:
+  belumi-db:
+    image: postgres:16-alpine
+    container_name: belumi-postgres
+    restart: always
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: 12345
+      POSTGRES_DB: belumi_db
+    ports:
+      - "5432:5432"
+    volumes:
+      - belumi_db_data:/var/lib/postgresql/data
+
+volumes:
+  belumi_db_data:
+    driver: local

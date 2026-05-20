@@ -38,24 +38,22 @@ public class GlobalExceptionHandler : IExceptionHandler
         }
 
         context.Response.StatusCode = status;
+        context.Response.ContentType = "application/problem+json; charset=utf-8";
 
-        return await _problemDetails.TryWriteAsync(new ProblemDetailsContext
+        var problemDetails = new ProblemDetails
         {
-            HttpContext = context,
-            Exception = exception,
-            ProblemDetails =
-            {
-                Title  = title,
-                Status = status,
-                Detail = exception.Message,
-                Extensions =
-                {
-                    ["errorCode"] = errorCode,
-                    ["errors"]    = exception is ValidationException valEx
-                                    ? valEx.Errors
-                                    : null
-                }
-            }
-        });
+            Title = title,
+            Status = status,
+            Detail = exception.Message
+        };
+
+        problemDetails.Extensions["errorCode"] = errorCode;
+        if (exception is ValidationException valEx)
+        {
+            problemDetails.Extensions["errors"] = valEx.Errors;
+        }
+
+        await context.Response.WriteAsJsonAsync(problemDetails, cancellationToken: ct);
+        return true;
     }
 }
