@@ -1,17 +1,9 @@
-
-using System.Text;
-
 using Belumi.API.Common;
 using Belumi.Application.Validators;
-using Belumi.Infrastructure.Data;
 using Belumi.Infrastructure;
+using Belumi.Infrastructure.Data;
 using FluentValidation;
-
-using Microsoft.AspNetCore.Authentication.JwtBearer;
-using Microsoft.IdentityModel.Tokens;
-
 using Microsoft.AspNetCore.Authentication;
-
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -20,11 +12,7 @@ builder.Services.AddControllers(options =>
     options.Filters.Add<ValidationFilter>();
 });
 
-
-builder.Services.AddValidatorsFromAssemblyContaining<LoginRequestValidator>();
-
 builder.Services.AddValidatorsFromAssemblyContaining<FirebaseLoginRequestValidator>();
-
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 builder.Services.AddCors(options =>

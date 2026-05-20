@@ -1,7 +1,4 @@
-using Belumi.Core.DTOs;
 using Belumi.Core.Entities;
-using Belumi.Core.Exceptions;
-using Belumi.Core.Interfaces;
 using Belumi.Infrastructure.Data;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -11,24 +8,21 @@ namespace Belumi.API.Controllers;
 
 [ApiController]
 [Route("api/admin")]
-public sealed class AdminAuthController(IAuthService authService, BelumiDbContext db) : ControllerBase
+public sealed class AdminAuthController(BelumiDbContext db) : ControllerBase
 {
-    [HttpPost("auth/login")]
-    public async Task<ActionResult<AuthResponse>> Login(LoginRequest request, CancellationToken cancellationToken)
-    {
-        var response = await authService.LoginAsync(request, cancellationToken);
-        if (response.Role != UserRole.Admin)
-        {
-            throw new ForbiddenException("Admin permission required.");
-        }
-        return Ok(response);
-    }
-
     [HttpGet("dashboard")]
     [Authorize(Roles = nameof(UserRole.Admin))]
     public async Task<IActionResult> Dashboard(CancellationToken cancellationToken)
     {
-        var startOfMonth = new DateTime(DateTime.UtcNow.Year, DateTime.UtcNow.Month, 1, 0, 0, 0, DateTimeKind.Utc);
+        var startOfMonth = new DateTime(
+            DateTime.UtcNow.Year,
+            DateTime.UtcNow.Month,
+            1,
+            0,
+            0,
+            0,
+            DateTimeKind.Utc);
+
         return Ok(new
         {
             totalUsers = await db.Users.CountAsync(cancellationToken),
