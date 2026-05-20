@@ -1,18 +1,17 @@
-<<<<<<< Updated upstream
+
 using System.Text;
-=======
->>>>>>> Stashed changes
+
 using Belumi.API.Common;
 using Belumi.Application.Validators;
 using Belumi.Infrastructure.Data;
 using Belumi.Infrastructure;
 using FluentValidation;
-<<<<<<< Updated upstream
+
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
-=======
+
 using Microsoft.AspNetCore.Authentication;
->>>>>>> Stashed changes
+
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -21,11 +20,11 @@ builder.Services.AddControllers(options =>
     options.Filters.Add<ValidationFilter>();
 });
 
-<<<<<<< Updated upstream
+
 builder.Services.AddValidatorsFromAssemblyContaining<LoginRequestValidator>();
-=======
+
 builder.Services.AddValidatorsFromAssemblyContaining<FirebaseLoginRequestValidator>();
->>>>>>> Stashed changes
+
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 builder.Services.AddCors(options =>
