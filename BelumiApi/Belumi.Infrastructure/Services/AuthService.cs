@@ -3,6 +3,7 @@ using System.Security.Claims;
 using System.Text;
 using Belumi.Core.DTOs;
 using Belumi.Core.Entities;
+using Belumi.Core.Exceptions;
 using Belumi.Core.Interfaces;
 using Belumi.Infrastructure.Data;
 using FirebaseAdmin.Auth;
@@ -22,7 +23,7 @@ public sealed class AuthService(
         var email = request.Email.Trim().ToLowerInvariant();
         if (await db.Users.AnyAsync(user => user.Email == email, cancellationToken))
         {
-            throw new InvalidOperationException("Email already exists.");
+            throw new ConflictException("Email already exists.");
         }
 
         var user = new User
@@ -42,16 +43,16 @@ public sealed class AuthService(
     {
         var email = request.Email.Trim().ToLowerInvariant();
         var user = await db.Users.FirstOrDefaultAsync(x => x.Email == email, cancellationToken)
-            ?? throw new UnauthorizedAccessException("Invalid credentials.");
+            ?? throw new UnauthorizedException("Invalid credentials.");
 
         if (!user.IsActive)
         {
-            throw new UnauthorizedAccessException("User is inactive.");
+            throw new UnauthorizedException("User is inactive.");
         }
 
         if (!PasswordHasher.Verify(request.Password, user.PasswordHash))
         {
-            throw new UnauthorizedAccessException("Invalid credentials.");
+            throw new UnauthorizedException("Invalid credentials.");
         }
 
         return ToResponse(user);
@@ -75,7 +76,7 @@ public sealed class AuthService(
             }
             catch (Exception ex) when (ex is FirebaseAuthException or ArgumentException)
             {
-                throw new UnauthorizedAccessException("Invalid Firebase ID token.");
+                throw new UnauthorizedException("Invalid Firebase ID token.");
             }
 
             firebaseUid = decodedToken.Uid;
@@ -94,12 +95,12 @@ public sealed class AuthService(
 
         if (string.IsNullOrWhiteSpace(firebaseUid))
         {
-            throw new UnauthorizedAccessException("Firebase UID or ID token is required.");
+            throw new UnauthorizedException("Firebase UID or ID token is required.");
         }
 
         if (string.IsNullOrWhiteSpace(email))
         {
-            throw new UnauthorizedAccessException("Firebase login requires an email.");
+            throw new UnauthorizedException("Firebase login requires an email.");
         }
 
         var user = await db.Users.FirstOrDefaultAsync(x => x.Email == email || x.FirebaseUid == firebaseUid, cancellationToken);
@@ -120,7 +121,7 @@ public sealed class AuthService(
         {
             if (!user.IsActive)
             {
-                throw new UnauthorizedAccessException("User is inactive.");
+                throw new UnauthorizedException("User is inactive.");
             }
 
             user.FirebaseUid ??= firebaseUid;

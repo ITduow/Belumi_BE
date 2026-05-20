@@ -1,5 +1,6 @@
 using Belumi.Core.DTOs;
 using Belumi.Core.Entities;
+using Belumi.Core.Exceptions;
 using Belumi.Core.Interfaces;
 using Belumi.Infrastructure.Data;
 using Microsoft.AspNetCore.Authorization;
@@ -16,7 +17,11 @@ public sealed class AdminAuthController(IAuthService authService, BelumiDbContex
     public async Task<ActionResult<AuthResponse>> Login(LoginRequest request, CancellationToken cancellationToken)
     {
         var response = await authService.LoginAsync(request, cancellationToken);
-        return response.Role == UserRole.Admin ? Ok(response) : Unauthorized(new { message = "Admin permission required." });
+        if (response.Role != UserRole.Admin)
+        {
+            throw new ForbiddenException("Admin permission required.");
+        }
+        return Ok(response);
     }
 
     [HttpGet("dashboard")]
