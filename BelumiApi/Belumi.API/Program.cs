@@ -1,12 +1,20 @@
 using System.Text;
+using Belumi.API.Common;
+using Belumi.Application.Validators;
 using Belumi.Infrastructure.Data;
 using Belumi.Infrastructure;
+using FluentValidation;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
 
 var builder = WebApplication.CreateBuilder(args);
 
-builder.Services.AddControllers();
+builder.Services.AddControllers(options =>
+{
+    options.Filters.Add<ValidationFilter>();
+});
+
+builder.Services.AddValidatorsFromAssemblyContaining<LoginRequestValidator>();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 builder.Services.AddCors(options =>
@@ -31,22 +39,12 @@ builder.Services.AddAuthorization();
 
 builder.Services.AddInfrastructure(builder.Configuration);
 
+builder.Services.AddExceptionHandler<GlobalExceptionHandler>();
+builder.Services.AddProblemDetails();
+
 var app = builder.Build();
 
-app.UseExceptionHandler(handler =>
-{
-    handler.Run(async context =>
-    {
-        context.Response.StatusCode = StatusCodes.Status500InternalServerError;
-        context.Response.ContentType = "application/json";
-        await context.Response.WriteAsJsonAsync(new
-        {
-            success = false,
-            message = "Unexpected server error.",
-            errors = Array.Empty<string>()
-        });
-    });
-});
+app.UseExceptionHandler();
 
 if (app.Environment.IsDevelopment())
 {
@@ -63,7 +61,6 @@ app.MapControllers();
 using (var scope = app.Services.CreateScope())
 {
     var db = scope.ServiceProvider.GetRequiredService<BelumiDbContext>();
-    await BelumiSchemaBootstrapper.EnsureSchemaAsync(db);
     await BelumiSeedData.SeedAsync(db);
 }
 

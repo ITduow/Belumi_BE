@@ -2,14 +2,20 @@
 
 ## Backend
 
-1. Install PostgreSQL and create database `belumi_db`.
-2. Configure connection string with user-secrets or environment variable.
+1. **Khởi tạo Database bằng Docker Compose (Khuyên dùng):**
+   Đảm bảo bạn đã cài Docker Desktop trên máy. Chạy lệnh sau ở thư mục gốc để khởi tạo PostgreSQL database:
+   ```bash
+   docker compose up -d
+   ```
+   *(Lệnh này sẽ tự động tải Postgres 16-alpine về, khởi tạo container chạy cổng 5432, tạo sẵn database `belumi_db` với user `postgres` và mật khẩu `12345`)*.
 
-```powershell
-cd BelumiApi/Belumi.API
-dotnet user-secrets set "ConnectionStrings:DefaultConnection" "Host=localhost;Port=5432;Database=belumi_db;Username=postgres;Password=12345"
-dotnet user-secrets set "Gemini:ApiKey" "<your-key>"
-```
+2. **Cấu hình Connection String & Gemini API Key:**
+   Chạy các lệnh dotnet user-secrets sau tại thư mục dự án API để cấu hình:
+   ```powershell
+   cd BelumiApi/Belumi.API
+   dotnet user-secrets set "ConnectionStrings:DefaultConnection" "Host=localhost;Port=5432;Database=belumi_db;Username=postgres;Password=12345"
+   dotnet user-secrets set "Gemini:ApiKey" "<your-gemini-api-key>"
+   ```
 
 3. Run API.
 
