@@ -18,6 +18,18 @@ public static class DependencyInjection
             ?? configuration.GetConnectionString("DefaultConnection")
             ?? "Host=localhost;Port=5432;Database=belumi;Username=postgres;Password=12345";
 
+        if (connectionString.StartsWith("postgres://") || connectionString.StartsWith("postgresql://"))
+        {
+            var databaseUri = new Uri(connectionString);
+            var userInfo = databaseUri.UserInfo.Split(':');
+            var username = userInfo[0];
+            var password = userInfo.Length > 1 ? userInfo[1] : "";
+            var host = databaseUri.Host;
+            var port = databaseUri.Port;
+            var database = databaseUri.AbsolutePath.TrimStart('/');
+
+            connectionString = $"Host={host};Port={port};Database={database};Username={username};Password={password};SslMode=Require;Trust Server Certificate=true;";
+        }
 
         services.AddDbContext<BelumiDbContext>(options => options.UseNpgsql(connectionString));
         services.AddSingleton<FirebaseAdminAppFactory>();
