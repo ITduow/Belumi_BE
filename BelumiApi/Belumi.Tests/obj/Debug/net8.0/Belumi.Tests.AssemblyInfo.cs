@@ -13,7 +13,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyCompanyAttribute("Belumi.Tests")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Debug")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+80a76b9481b7d73e257479a540cf91b3a99c147f")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+e039e06f8dc021ef8ea8674a081e4d443edf9fe0")]
 [assembly: System.Reflection.AssemblyProductAttribute("Belumi.Tests")]
 [assembly: System.Reflection.AssemblyTitleAttribute("Belumi.Tests")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]

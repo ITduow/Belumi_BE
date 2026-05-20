@@ -44,6 +44,11 @@ public sealed class AuthService(
         var user = await db.Users.FirstOrDefaultAsync(x => x.Email == email, cancellationToken)
             ?? throw new UnauthorizedAccessException("Invalid credentials.");
 
+        if (!user.IsActive)
+        {
+            throw new UnauthorizedAccessException("User is inactive.");
+        }
+
         if (!PasswordHasher.Verify(request.Password, user.PasswordHash))
         {
             throw new UnauthorizedAccessException("Invalid credentials.");
@@ -54,55 +59,71 @@ public sealed class AuthService(
 
     public async Task<AuthResponse> FirebaseLoginAsync(FirebaseLoginRequest request, CancellationToken cancellationToken)
     {
-        if (string.IsNullOrWhiteSpace(request.IdToken))
+        string? firebaseUid = request.FirebaseUid;
+        string? email = request.Email?.Trim().ToLowerInvariant();
+        string? name = request.FullName;
+        string? picture = request.AvatarUrl;
+
+        if (!string.IsNullOrWhiteSpace(request.IdToken))
         {
-            throw new UnauthorizedAccessException("Firebase ID token is required.");
+            firebaseAdminAppFactory.GetOrCreate();
+
+            FirebaseToken decodedToken;
+            try
+            {
+                decodedToken = await FirebaseAuth.DefaultInstance.VerifyIdTokenAsync(request.IdToken, cancellationToken);
+            }
+            catch (Exception ex) when (ex is FirebaseAuthException or ArgumentException)
+            {
+                throw new UnauthorizedAccessException("Invalid Firebase ID token.");
+            }
+
+            firebaseUid = decodedToken.Uid;
+            email = decodedToken.Claims.TryGetValue("email", out var emailValue)
+                ? emailValue?.ToString()?.Trim().ToLowerInvariant()
+                : null;
+
+            name = decodedToken.Claims.TryGetValue("name", out var nameValue)
+                ? nameValue?.ToString()
+                : name;
+
+            picture = decodedToken.Claims.TryGetValue("picture", out var pictureValue)
+                ? pictureValue?.ToString()
+                : picture;
         }
 
-        firebaseAdminAppFactory.GetOrCreate();
-
-        FirebaseToken decodedToken;
-        try
+        if (string.IsNullOrWhiteSpace(firebaseUid))
         {
-            decodedToken = await FirebaseAuth.DefaultInstance.VerifyIdTokenAsync(request.IdToken, cancellationToken);
+            throw new UnauthorizedAccessException("Firebase UID or ID token is required.");
         }
-        catch (Exception ex) when (ex is FirebaseAuthException or ArgumentException)
-        {
-            throw new UnauthorizedAccessException("Invalid Firebase ID token.");
-        }
-
-        var email = decodedToken.Claims.TryGetValue("email", out var emailValue)
-            ? emailValue?.ToString()?.Trim().ToLowerInvariant()
-            : null;
 
         if (string.IsNullOrWhiteSpace(email))
         {
-            throw new UnauthorizedAccessException("Firebase token does not contain an email.");
+            throw new UnauthorizedAccessException("Firebase login requires an email.");
         }
 
-        var name = decodedToken.Claims.TryGetValue("name", out var nameValue)
-            ? nameValue?.ToString()
-            : null;
-
-        var picture = decodedToken.Claims.TryGetValue("picture", out var pictureValue)
-            ? pictureValue?.ToString()
-            : null;
-
-        var user = await db.Users.FirstOrDefaultAsync(x => x.Email == email, cancellationToken);
+        var user = await db.Users.FirstOrDefaultAsync(x => x.Email == email || x.FirebaseUid == firebaseUid, cancellationToken);
         if (user is null)
         {
             user = new User
             {
+                FirebaseUid = firebaseUid,
                 Email = email,
                 FullName = string.IsNullOrWhiteSpace(name) ? email : name,
                 AvatarUrl = picture,
-                PasswordHash = PasswordHasher.Hash($"firebase:{decodedToken.Uid}:{Guid.NewGuid()}"),
+                PasswordHash = PasswordHasher.Hash($"firebase:{firebaseUid}:{Guid.NewGuid()}"),
                 Role = UserRole.Customer
             };
             db.Users.Add(user);
         }
         else
         {
+            if (!user.IsActive)
+            {
+                throw new UnauthorizedAccessException("User is inactive.");
+            }
+
+            user.FirebaseUid ??= firebaseUid;
             if (!string.IsNullOrWhiteSpace(name))
             {
                 user.FullName = name;

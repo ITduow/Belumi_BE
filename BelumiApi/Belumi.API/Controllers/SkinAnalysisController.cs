@@ -15,7 +15,7 @@ public sealed class SkinAnalysisController(BelumiDbContext db, ISkinAnalysisServ
     [HttpPost]
     public async Task<ActionResult<SkinAnalysisResult>> Analyze(SkinAnalysisRequest request, CancellationToken cancellationToken)
     {
-        var analysis = await skinAnalysisService.AnalyzeAsync(User.GetUserId(), request.ImageUrl, cancellationToken);
+        var analysis = await skinAnalysisService.AnalyzeAsync(User.GetUserId(), request, cancellationToken);
         return Ok(new SkinAnalysisResult(analysis.Id, analysis.ImageUrl, analysis.SkinType, analysis.Concerns, analysis.Recommendations, analysis.Score, analysis.AnalyzedAt));
     }
 

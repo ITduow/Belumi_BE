@@ -13,12 +13,22 @@ public sealed record ProductDto(
     IReadOnlyCollection<string> Images);
 
 public sealed record ContactRequestDto(string FullName, string Phone, string? Email, string Message);
-public sealed record SkinAnalysisRequest(string ImageUrl);
+public sealed record SkinAnalysisRequest(
+    string? ImageUrl,
+    string? SkinType,
+    IReadOnlyCollection<string>? Concerns,
+    string? Goal,
+    string? PlanCode);
 public sealed record SkinAnalysisResult(Guid Id, string ImageUrl, string SkinType, string Concerns, string Recommendations, int Score, DateTime AnalyzedAt);
 public sealed record BeautyProfileRequest(string? SkinType, string? SkinConcerns, string? Allergies);
 public sealed record IngredientLookupRequest(string TextOrImageUrl);
 public sealed record IngredientLookupResult(string Summary, IReadOnlyCollection<string> SafeIngredients, IReadOnlyCollection<string> Watchlist, IReadOnlyCollection<string> Recommendations);
+public sealed record IngredientScanRequest(string RawTextOrImageUrl, string? SkinType, IReadOnlyCollection<string>? Allergies);
+public sealed record IngredientScanItem(string Name, string Category, string Safety, string Reason);
+public sealed record IngredientScanResult(int SafetyScore, string Status, string Summary, IReadOnlyCollection<IngredientScanItem> Beneficial, IReadOnlyCollection<IngredientScanItem> Neutral, IReadOnlyCollection<IngredientScanItem> Harmful, IReadOnlyCollection<string> Recommendations);
 public sealed record MakeupConsultationRequest(string SkinTone, string Occasion, string Style);
 public sealed record MakeupConsultationResult(string LookName, string Base, string Eyes, string Lips, IReadOnlyCollection<string> ProductSuggestions);
+public sealed record MakeupTryOnRequest(string ImageUrl, string ProductName, string ProductType, string Shade, string HexColor);
+public sealed record MakeupTryOnResult(string ProductName, string ProductType, string Shade, string HexColor, int MatchScore, string PreviewNote, IReadOnlyCollection<string> ApplicationTips);
 public sealed record PaymentQrRequest(string PlanCode, string CustomerEmail);
 public sealed record PaymentQrResponse(string PlanCode, decimal Amount, string BankCode, string AccountNumber, string Description, string VietQrUrl);

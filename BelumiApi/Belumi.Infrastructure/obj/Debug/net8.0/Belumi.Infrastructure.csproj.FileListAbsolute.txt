@@ -18,3 +18,7 @@ C:\Users\codei\OneDrive\Desktop\Belumi_EXE201\BelumiApi\Belumi.Infrastructure\ob
 C:\Users\codei\OneDrive\Desktop\Belumi_EXE201\BelumiApi\Belumi.Infrastructure\obj\Debug\net8.0\ref\Belumi.Infrastructure.dll
 C:\Users\codei\OneDrive\Desktop\Belumi_EXE201\BelumiApi\Belumi.Infrastructure\bin\Debug\net8.0\Belumi.Application.dll
 C:\Users\codei\OneDrive\Desktop\Belumi_EXE201\BelumiApi\Belumi.Infrastructure\bin\Debug\net8.0\Belumi.Application.pdb
+C:\tmp\belumi-api-build-check\Belumi.Infrastructure.deps.json
+C:\tmp\belumi-api-build-check\Belumi.Infrastructure.runtimeconfig.json
+C:\tmp\belumi-api-build-check\Belumi.Infrastructure.dll
+C:\tmp\belumi-api-build-check\Belumi.Infrastructure.pdb

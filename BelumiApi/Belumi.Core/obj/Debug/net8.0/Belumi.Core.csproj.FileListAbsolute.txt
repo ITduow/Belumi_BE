@@ -10,3 +10,6 @@ C:\Users\codei\OneDrive\Desktop\Belumi_EXE201\BelumiApi\Belumi.Core\obj\Debug\ne
 C:\Users\codei\OneDrive\Desktop\Belumi_EXE201\BelumiApi\Belumi.Core\obj\Debug\net8.0\refint\Belumi.Core.dll
 C:\Users\codei\OneDrive\Desktop\Belumi_EXE201\BelumiApi\Belumi.Core\obj\Debug\net8.0\Belumi.Core.pdb
 C:\Users\codei\OneDrive\Desktop\Belumi_EXE201\BelumiApi\Belumi.Core\obj\Debug\net8.0\ref\Belumi.Core.dll
+C:\tmp\belumi-api-build-check\Belumi.Core.deps.json
+C:\tmp\belumi-api-build-check\Belumi.Core.dll
+C:\tmp\belumi-api-build-check\Belumi.Core.pdb

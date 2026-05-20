@@ -26,9 +26,9 @@
     "ReturnTypes": []
   },
   {
-    "ContainingType": "Belumi.API.Controllers.AdminController",
-    "Method": "Bookings",
-    "RelativePath": "api/admin/bookings",
+    "ContainingType": "Belumi.API.Controllers.AiUsageController",
+    "Method": "AdminUsage",
+    "RelativePath": "api/admin/ai-usage",
     "HttpMethod": "GET",
     "IsController": true,
     "Order": 0,
@@ -36,25 +36,30 @@
     "ReturnTypes": []
   },
   {
-    "ContainingType": "Belumi.API.Controllers.AdminController",
-    "Method": "UpdateBookingStatus",
-    "RelativePath": "api/admin/bookings/{id}/status",
-    "HttpMethod": "PATCH",
+    "ContainingType": "Belumi.API.Controllers.AdminAuthController",
+    "Method": "Login",
+    "RelativePath": "api/admin/auth/login",
+    "HttpMethod": "POST",
     "IsController": true,
     "Order": 0,
     "Parameters": [
       {
-        "Name": "id",
-        "Type": "System.Guid",
-        "IsRequired": true
-      },
-      {
-        "Name": "status",
-        "Type": "System.String",
+        "Name": "request",
+        "Type": "Belumi.Core.DTOs.LoginRequest",
         "IsRequired": true
       }
     ],
-    "ReturnTypes": []
+    "ReturnTypes": [
+      {
+        "Type": "Belumi.Core.DTOs.AuthResponse",
+        "MediaTypes": [
+          "text/plain",
+          "application/json",
+          "text/json"
+        ],
+        "StatusCode": 200
+      }
+    ]
   },
   {
     "ContainingType": "Belumi.API.Controllers.AdminController",
@@ -82,6 +87,69 @@
       {
         "Name": "status",
         "Type": "System.String",
+        "IsRequired": true
+      }
+    ],
+    "ReturnTypes": []
+  },
+  {
+    "ContainingType": "Belumi.API.Controllers.AdminAuthController",
+    "Method": "Dashboard",
+    "RelativePath": "api/admin/dashboard",
+    "HttpMethod": "GET",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [],
+    "ReturnTypes": []
+  },
+  {
+    "ContainingType": "Belumi.API.Controllers.AdminController",
+    "Method": "CreateNews",
+    "RelativePath": "api/admin/news",
+    "HttpMethod": "POST",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [
+      {
+        "Name": "post",
+        "Type": "Belumi.Core.Entities.BlogPost",
+        "IsRequired": true
+      }
+    ],
+    "ReturnTypes": []
+  },
+  {
+    "ContainingType": "Belumi.API.Controllers.AdminController",
+    "Method": "UpdateNews",
+    "RelativePath": "api/admin/news/{id}",
+    "HttpMethod": "PUT",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [
+      {
+        "Name": "id",
+        "Type": "System.Guid",
+        "IsRequired": true
+      },
+      {
+        "Name": "post",
+        "Type": "Belumi.Core.Entities.BlogPost",
+        "IsRequired": true
+      }
+    ],
+    "ReturnTypes": []
+  },
+  {
+    "ContainingType": "Belumi.API.Controllers.AdminController",
+    "Method": "DeleteNews",
+    "RelativePath": "api/admin/news/{id}",
+    "HttpMethod": "DELETE",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [
+      {
+        "Name": "id",
+        "Type": "System.Guid",
         "IsRequired": true
       }
     ],
@@ -125,6 +193,69 @@
     "ReturnTypes": []
   },
   {
+    "ContainingType": "Belumi.API.Controllers.AdminController",
+    "Method": "DeleteProduct",
+    "RelativePath": "api/admin/products/{id}",
+    "HttpMethod": "DELETE",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [
+      {
+        "Name": "id",
+        "Type": "System.Guid",
+        "IsRequired": true
+      }
+    ],
+    "ReturnTypes": []
+  },
+  {
+    "ContainingType": "Belumi.API.Controllers.AdminController",
+    "Method": "Users",
+    "RelativePath": "api/admin/users",
+    "HttpMethod": "GET",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [],
+    "ReturnTypes": []
+  },
+  {
+    "ContainingType": "Belumi.API.Controllers.AdminController",
+    "Method": "UpdateUserStatus",
+    "RelativePath": "api/admin/users/{id}/status",
+    "HttpMethod": "PUT",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [
+      {
+        "Name": "id",
+        "Type": "System.Guid",
+        "IsRequired": true
+      },
+      {
+        "Name": "request",
+        "Type": "Belumi.API.Controllers.UserStatusRequest",
+        "IsRequired": true
+      }
+    ],
+    "ReturnTypes": []
+  },
+  {
+    "ContainingType": "Belumi.API.Controllers.AiUsageController",
+    "Method": "UserUsage",
+    "RelativePath": "api/ai-usage/{userId}",
+    "HttpMethod": "GET",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [
+      {
+        "Name": "userId",
+        "Type": "System.Guid",
+        "IsRequired": true
+      }
+    ],
+    "ReturnTypes": []
+  },
+  {
     "ContainingType": "Belumi.API.Controllers.AuthController",
     "Method": "AdminLogin",
     "RelativePath": "api/auth/admin-login",
@@ -135,6 +266,32 @@
       {
         "Name": "request",
         "Type": "Belumi.Core.DTOs.LoginRequest",
+        "IsRequired": true
+      }
+    ],
+    "ReturnTypes": [
+      {
+        "Type": "Belumi.Core.DTOs.AuthResponse",
+        "MediaTypes": [
+          "text/plain",
+          "application/json",
+          "text/json"
+        ],
+        "StatusCode": 200
+      }
+    ]
+  },
+  {
+    "ContainingType": "Belumi.API.Controllers.AuthController",
+    "Method": "FirebaseLogin",
+    "RelativePath": "api/auth/firebase-login",
+    "HttpMethod": "POST",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [
+      {
+        "Name": "request",
+        "Type": "Belumi.Core.DTOs.FirebaseLoginRequest",
         "IsRequired": true
       }
     ],
@@ -265,32 +422,6 @@
     "ReturnTypes": []
   },
   {
-    "ContainingType": "Belumi.API.Controllers.BookingController",
-    "Method": "Create",
-    "RelativePath": "api/bookings",
-    "HttpMethod": "POST",
-    "IsController": true,
-    "Order": 0,
-    "Parameters": [
-      {
-        "Name": "request",
-        "Type": "Belumi.Core.DTOs.BookingRequest",
-        "IsRequired": true
-      }
-    ],
-    "ReturnTypes": []
-  },
-  {
-    "ContainingType": "Belumi.API.Controllers.BookingController",
-    "Method": "My",
-    "RelativePath": "api/bookings/my",
-    "HttpMethod": "GET",
-    "IsController": true,
-    "Order": 0,
-    "Parameters": [],
-    "ReturnTypes": []
-  },
-  {
     "ContainingType": "Belumi.API.Controllers.CategoryController",
     "Method": "Get",
     "RelativePath": "api/categories",
@@ -311,6 +442,74 @@
       {
         "Name": "request",
         "Type": "Belumi.Core.DTOs.ContactRequestDto",
+        "IsRequired": true
+      }
+    ],
+    "ReturnTypes": []
+  },
+  {
+    "ContainingType": "Belumi.API.Controllers.IngredientController",
+    "Method": "AnalyzeImage",
+    "RelativePath": "api/ingredients/analyze-image",
+    "HttpMethod": "POST",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [
+      {
+        "Name": "request",
+        "Type": "Belumi.API.Controllers.IngredientAnalyzeImageRequest",
+        "IsRequired": true
+      }
+    ],
+    "ReturnTypes": [
+      {
+        "Type": "Belumi.Core.DTOs.IngredientScanResult",
+        "MediaTypes": [
+          "text/plain",
+          "application/json",
+          "text/json"
+        ],
+        "StatusCode": 200
+      }
+    ]
+  },
+  {
+    "ContainingType": "Belumi.API.Controllers.IngredientController",
+    "Method": "AnalyzeText",
+    "RelativePath": "api/ingredients/analyze-text",
+    "HttpMethod": "POST",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [
+      {
+        "Name": "request",
+        "Type": "Belumi.API.Controllers.IngredientAnalyzeTextRequest",
+        "IsRequired": true
+      }
+    ],
+    "ReturnTypes": [
+      {
+        "Type": "Belumi.Core.DTOs.IngredientScanResult",
+        "MediaTypes": [
+          "text/plain",
+          "application/json",
+          "text/json"
+        ],
+        "StatusCode": 200
+      }
+    ]
+  },
+  {
+    "ContainingType": "Belumi.API.Controllers.IngredientController",
+    "Method": "History",
+    "RelativePath": "api/ingredients/history/{userId}",
+    "HttpMethod": "GET",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [
+      {
+        "Name": "userId",
+        "Type": "System.Guid",
         "IsRequired": true
       }
     ],
@@ -343,6 +542,32 @@
     ]
   },
   {
+    "ContainingType": "Belumi.API.Controllers.IngredientController",
+    "Method": "Scan",
+    "RelativePath": "api/ingredients/scan",
+    "HttpMethod": "POST",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [
+      {
+        "Name": "request",
+        "Type": "Belumi.Core.DTOs.IngredientScanRequest",
+        "IsRequired": true
+      }
+    ],
+    "ReturnTypes": [
+      {
+        "Type": "Belumi.Core.DTOs.IngredientScanResult",
+        "MediaTypes": [
+          "text/plain",
+          "application/json",
+          "text/json"
+        ],
+        "StatusCode": 200
+      }
+    ]
+  },
+  {
     "ContainingType": "Belumi.API.Controllers.MakeupController",
     "Method": "Catalog",
     "RelativePath": "api/makeup/catalog",
@@ -351,6 +576,32 @@
     "Order": 0,
     "Parameters": [],
     "ReturnTypes": []
+  },
+  {
+    "ContainingType": "Belumi.API.Controllers.MakeupController",
+    "Method": "ConsultV2",
+    "RelativePath": "api/makeup/consult",
+    "HttpMethod": "POST",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [
+      {
+        "Name": "request",
+        "Type": "Belumi.API.Controllers.MakeupConsultRequest",
+        "IsRequired": true
+      }
+    ],
+    "ReturnTypes": [
+      {
+        "Type": "Belumi.Core.DTOs.MakeupConsultationResult",
+        "MediaTypes": [
+          "text/plain",
+          "application/json",
+          "text/json"
+        ],
+        "StatusCode": 200
+      }
+    ]
   },
   {
     "ContainingType": "Belumi.API.Controllers.MakeupController",
@@ -377,6 +628,101 @@
         "StatusCode": 200
       }
     ]
+  },
+  {
+    "ContainingType": "Belumi.API.Controllers.MakeupController",
+    "Method": "History",
+    "RelativePath": "api/makeup/history/{userId}",
+    "HttpMethod": "GET",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [
+      {
+        "Name": "userId",
+        "Type": "System.Guid",
+        "IsRequired": true
+      }
+    ],
+    "ReturnTypes": []
+  },
+  {
+    "ContainingType": "Belumi.API.Controllers.MakeupController",
+    "Method": "TryOn",
+    "RelativePath": "api/makeup/try-on",
+    "HttpMethod": "POST",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [
+      {
+        "Name": "request",
+        "Type": "Belumi.Core.DTOs.MakeupTryOnRequest",
+        "IsRequired": true
+      }
+    ],
+    "ReturnTypes": [
+      {
+        "Type": "Belumi.Core.DTOs.MakeupTryOnResult",
+        "MediaTypes": [
+          "text/plain",
+          "application/json",
+          "text/json"
+        ],
+        "StatusCode": 200
+      }
+    ]
+  },
+  {
+    "ContainingType": "Belumi.API.Controllers.NewsController",
+    "Method": "Get",
+    "RelativePath": "api/news",
+    "HttpMethod": "GET",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [
+      {
+        "Name": "category",
+        "Type": "System.String",
+        "IsRequired": false
+      },
+      {
+        "Name": "search",
+        "Type": "System.String",
+        "IsRequired": false
+      }
+    ],
+    "ReturnTypes": []
+  },
+  {
+    "ContainingType": "Belumi.API.Controllers.NewsController",
+    "Method": "GetBySlug",
+    "RelativePath": "api/news/{slug}",
+    "HttpMethod": "GET",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [
+      {
+        "Name": "slug",
+        "Type": "System.String",
+        "IsRequired": true
+      }
+    ],
+    "ReturnTypes": []
+  },
+  {
+    "ContainingType": "Belumi.API.Controllers.PaymentMockController",
+    "Method": "MockCheckout",
+    "RelativePath": "api/payment/mock-checkout",
+    "HttpMethod": "POST",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [
+      {
+        "Name": "request",
+        "Type": "Belumi.API.Controllers.MockCheckoutRequest",
+        "IsRequired": true
+      }
+    ],
+    "ReturnTypes": []
   },
   {
     "ContainingType": "Belumi.API.Controllers.PaymentController",
@@ -510,6 +856,122 @@
     "IsController": true,
     "Order": 0,
     "Parameters": [],
+    "ReturnTypes": []
+  },
+  {
+    "ContainingType": "Belumi.API.Controllers.SkincareController",
+    "Method": "Get",
+    "RelativePath": "api/skincare/{id}",
+    "HttpMethod": "GET",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [
+      {
+        "Name": "id",
+        "Type": "System.Guid",
+        "IsRequired": true
+      }
+    ],
+    "ReturnTypes": []
+  },
+  {
+    "ContainingType": "Belumi.API.Controllers.SkincareController",
+    "Method": "Analyze",
+    "RelativePath": "api/skincare/analyze",
+    "HttpMethod": "POST",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [
+      {
+        "Name": "request",
+        "Type": "Belumi.API.Controllers.SkincareAnalyzeRequest",
+        "IsRequired": true
+      }
+    ],
+    "ReturnTypes": []
+  },
+  {
+    "ContainingType": "Belumi.API.Controllers.SkincareController",
+    "Method": "History",
+    "RelativePath": "api/skincare/history/{userId}",
+    "HttpMethod": "GET",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [
+      {
+        "Name": "userId",
+        "Type": "System.Guid",
+        "IsRequired": true
+      }
+    ],
+    "ReturnTypes": []
+  },
+  {
+    "ContainingType": "Belumi.API.Controllers.SubscriptionController",
+    "Method": "Plans",
+    "RelativePath": "api/subscription/plans",
+    "HttpMethod": "GET",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [],
+    "ReturnTypes": []
+  },
+  {
+    "ContainingType": "Belumi.API.Controllers.SubscriptionController",
+    "Method": "Upgrade",
+    "RelativePath": "api/subscription/upgrade",
+    "HttpMethod": "POST",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [
+      {
+        "Name": "request",
+        "Type": "Belumi.API.Controllers.SubscriptionUpgradeRequest",
+        "IsRequired": true
+      }
+    ],
+    "ReturnTypes": []
+  },
+  {
+    "ContainingType": "Belumi.API.Controllers.SubscriptionController",
+    "Method": "UserSubscription",
+    "RelativePath": "api/subscription/user/{userId}",
+    "HttpMethod": "GET",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [
+      {
+        "Name": "userId",
+        "Type": "System.Guid",
+        "IsRequired": true
+      }
+    ],
+    "ReturnTypes": []
+  },
+  {
+    "ContainingType": "Belumi.API.Controllers.UsersController",
+    "Method": "Me",
+    "RelativePath": "api/users/me",
+    "HttpMethod": "GET",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [],
+    "ReturnTypes": []
+  },
+  {
+    "ContainingType": "Belumi.API.Controllers.UsersController",
+    "Method": "UpdateMe",
+    "RelativePath": "api/users/me",
+    "HttpMethod": "PUT",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [
+      {
+        "Name": "request",
+        "Type": "Belumi.API.Controllers.UserUpdateRequest",
+        "IsRequired": true
+      }
+    ],
     "ReturnTypes": []
   },
   {

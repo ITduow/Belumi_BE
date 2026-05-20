@@ -13,19 +13,29 @@ public sealed class BelumiDbContext(DbContextOptions<BelumiDbContext> options) :
     public DbSet<Banner> Banners => Set<Banner>();
     public DbSet<ContactRequest> ContactRequests => Set<ContactRequest>();
     public DbSet<SkinAnalysis> SkinAnalyses => Set<SkinAnalysis>();
+    public DbSet<IngredientLookup> IngredientLookups => Set<IngredientLookup>();
+    public DbSet<MakeupConsultation> MakeupConsultations => Set<MakeupConsultation>();
     public DbSet<User> Users => Set<User>();
     public DbSet<BeautyProfile> BeautyProfiles => Set<BeautyProfile>();
     public DbSet<WishlistItem> WishlistItems => Set<WishlistItem>();
     public DbSet<MakeupCatalogItem> MakeupCatalogItems => Set<MakeupCatalogItem>();
+    public DbSet<SubscriptionPlan> SubscriptionPlans => Set<SubscriptionPlan>();
+    public DbSet<UserSubscription> UserSubscriptions => Set<UserSubscription>();
+    public DbSet<AiUsageLog> AiUsageLogs => Set<AiUsageLog>();
+    public DbSet<Payment> Payments => Set<Payment>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         modelBuilder.Entity<User>().HasIndex(user => user.Email).IsUnique();
         modelBuilder.Entity<Product>().Property(product => product.Price).HasPrecision(18, 2);
+        modelBuilder.Entity<SubscriptionPlan>().Property(plan => plan.Price).HasPrecision(18, 2);
+        modelBuilder.Entity<Payment>().Property(payment => payment.Amount).HasPrecision(18, 2);
         modelBuilder.Entity<Service>().Property(service => service.Price).HasPrecision(18, 2);
         modelBuilder.Entity<User>().Property(user => user.Role).HasConversion<string>();
         modelBuilder.Entity<ContactRequest>().Property(contact => contact.Status).HasConversion<string>();
         modelBuilder.Entity<WishlistItem>().HasIndex(item => new { item.UserId, item.ProductId }).IsUnique();
+        modelBuilder.Entity<SubscriptionPlan>().HasIndex(plan => plan.Name).IsUnique();
+        modelBuilder.Entity<BlogPost>().HasIndex(post => post.Slug).IsUnique();
 
         modelBuilder.Entity<BeautyProfile>()
             .HasOne(profile => profile.User)

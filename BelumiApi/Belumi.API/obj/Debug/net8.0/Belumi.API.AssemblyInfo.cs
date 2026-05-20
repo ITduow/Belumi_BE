@@ -10,10 +10,11 @@
 using System;
 using System.Reflection;
 
+[assembly: Microsoft.Extensions.Configuration.UserSecrets.UserSecretsIdAttribute("belumi-api-local-secrets")]
 [assembly: System.Reflection.AssemblyCompanyAttribute("Belumi.API")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Debug")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+80a76b9481b7d73e257479a540cf91b3a99c147f")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+e039e06f8dc021ef8ea8674a081e4d443edf9fe0")]
 [assembly: System.Reflection.AssemblyProductAttribute("Belumi.API")]
 [assembly: System.Reflection.AssemblyTitleAttribute("Belumi.API")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]
