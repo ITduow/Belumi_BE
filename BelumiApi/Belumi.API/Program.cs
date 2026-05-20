@@ -23,7 +23,11 @@ builder.Services.AddCors(options =>
         policy.AllowAnyHeader().AllowAnyMethod().AllowAnyOrigin());
 });
 
-var jwtKey = builder.Configuration["Jwt:Key"] ?? "BelumiBeautyLocalDevelopmentKeyMustBeLong";
+var jwtKey = builder.Configuration["Jwt:Key"];
+if (string.IsNullOrWhiteSpace(jwtKey))
+{
+    throw new InvalidOperationException("Jwt:Key must be configured.");
+}
 builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
     .AddJwtBearer(options =>
     {

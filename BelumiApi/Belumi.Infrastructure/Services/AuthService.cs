@@ -145,7 +145,11 @@ public sealed class AuthService(
 
     private string CreateToken(User user)
     {
-        var key = configuration["Jwt:Key"] ?? "BelumiBeautyLocalDevelopmentKeyMustBeLong";
+        var key = configuration["Jwt:Key"];
+        if (string.IsNullOrWhiteSpace(key))
+        {
+            throw new InvalidOperationException("Jwt:Key must be configured.");
+        }
         var credentials = new SigningCredentials(
             new SymmetricSecurityKey(Encoding.UTF8.GetBytes(key)),
             SecurityAlgorithms.HmacSha256);

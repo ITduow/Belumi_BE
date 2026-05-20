@@ -39,6 +39,7 @@ public sealed class AuthController(IAuthService authService) : ControllerBase
         return Ok(await authService.FirebaseLoginAsync(request, cancellationToken));
     }
 
+#if DEBUG
     [HttpPost("google-mock")]
     public async Task<ActionResult<AuthResponse>> GoogleMock(RegisterRequest request, CancellationToken cancellationToken)
     {
@@ -51,4 +52,5 @@ public sealed class AuthController(IAuthService authService) : ControllerBase
             return await Login(new LoginRequest(request.Email, "GoogleMock@2026"), cancellationToken);
         }
     }
+#endif
 }
