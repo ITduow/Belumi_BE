@@ -1,3 +1,6 @@
+using System.IdentityModel.Tokens.Jwt;
+using System.Security.Claims;
+using System.Text;
 using Belumi.Core.DTOs;
 using Belumi.Core.Entities;
 using Belumi.Core.Exceptions;
@@ -5,15 +8,16 @@ using Belumi.Core.Interfaces;
 using Belumi.Infrastructure.Data;
 using FirebaseAdmin.Auth;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Configuration;
+using Microsoft.IdentityModel.Tokens;
 
 namespace Belumi.Infrastructure.Services;
 
 public sealed class AuthService(
     BelumiDbContext db,
-    FirebaseAdminAppFactory firebaseAdminAppFactory,
-    FirebaseRoleService firebaseRoleService) : IAuthService
+    IConfiguration configuration,
+    FirebaseAdminAppFactory firebaseAdminAppFactory) : IAuthService
 {
-<<<<<<< Updated upstream
     public async Task<AuthResponse> RegisterAsync(RegisterRequest request, CancellationToken cancellationToken)
     {
         var email = request.Email.Trim().ToLowerInvariant();
@@ -54,8 +58,6 @@ public sealed class AuthService(
         return ToResponse(user);
     }
 
-=======
->>>>>>> Stashed changes
     public async Task<AuthResponse> FirebaseLoginAsync(FirebaseLoginRequest request, CancellationToken cancellationToken)
     {
         string? firebaseUid = request.FirebaseUid;
@@ -65,7 +67,6 @@ public sealed class AuthService(
 
         if (!string.IsNullOrWhiteSpace(request.IdToken))
         {
-<<<<<<< Updated upstream
             firebaseAdminAppFactory.GetOrCreate();
 
             FirebaseToken decodedToken;
@@ -90,51 +91,19 @@ public sealed class AuthService(
             picture = decodedToken.Claims.TryGetValue("picture", out var pictureValue)
                 ? pictureValue?.ToString()
                 : picture;
-=======
-            throw new UnauthorizedException("Firebase ID token is required.");
->>>>>>> Stashed changes
         }
 
         if (string.IsNullOrWhiteSpace(firebaseUid))
         {
             throw new UnauthorizedException("Firebase UID or ID token is required.");
         }
-<<<<<<< Updated upstream
 
-=======
-        catch (Exception ex) when (ex is FirebaseAuthException or ArgumentException)
-        {
-            throw new UnauthorizedException("Invalid Firebase ID token.");
-        }
-
-        var firebaseUid = decodedToken.Uid;
-        var firestoreRole = await firebaseRoleService.GetRoleAsync(decodedToken, cancellationToken);
-        var email = decodedToken.Claims.TryGetValue("email", out var emailValue)
-            ? emailValue?.ToString()?.Trim().ToLowerInvariant()
-            : null;
-
-        var name = decodedToken.Claims.TryGetValue("name", out var nameValue)
-            ? nameValue?.ToString()
-            : null;
-
-        var picture = decodedToken.Claims.TryGetValue("picture", out var pictureValue)
-            ? pictureValue?.ToString()
-            : null;
-
->>>>>>> Stashed changes
         if (string.IsNullOrWhiteSpace(email))
         {
             throw new UnauthorizedException("Firebase login requires an email.");
         }
 
-<<<<<<< Updated upstream
         var user = await db.Users.FirstOrDefaultAsync(x => x.Email == email || x.FirebaseUid == firebaseUid, cancellationToken);
-=======
-        var user = await db.Users.FirstOrDefaultAsync(
-            x => x.Email == email || x.FirebaseUid == firebaseUid,
-            cancellationToken);
-
->>>>>>> Stashed changes
         if (user is null)
         {
             user = new User
@@ -144,11 +113,7 @@ public sealed class AuthService(
                 FullName = string.IsNullOrWhiteSpace(name) ? email : name,
                 AvatarUrl = picture,
                 PasswordHash = PasswordHasher.Hash($"firebase:{firebaseUid}:{Guid.NewGuid()}"),
-<<<<<<< Updated upstream
                 Role = UserRole.Customer
-=======
-                Role = firestoreRole ?? UserRole.Customer
->>>>>>> Stashed changes
             };
             db.Users.Add(user);
         }
@@ -160,14 +125,6 @@ public sealed class AuthService(
             }
 
             user.FirebaseUid ??= firebaseUid;
-<<<<<<< Updated upstream
-=======
-            if (firestoreRole.HasValue)
-            {
-                user.Role = firestoreRole.Value;
-            }
-
->>>>>>> Stashed changes
             if (!string.IsNullOrWhiteSpace(name))
             {
                 user.FullName = name;
@@ -180,6 +137,30 @@ public sealed class AuthService(
         }
 
         await db.SaveChangesAsync(cancellationToken);
-        return new AuthResponse(user.Id, user.Email, user.FullName, user.Phone, user.Role, request.IdToken);
+        return ToResponse(user);
+    }
+
+    private AuthResponse ToResponse(User user) =>
+        new(user.Id, user.Email, user.FullName, user.Phone, user.Role, CreateToken(user));
+
+    private string CreateToken(User user)
+    {
+        var key = configuration["Jwt:Key"] ?? "BelumiBeautyLocalDevelopmentKeyMustBeLong";
+        var credentials = new SigningCredentials(
+            new SymmetricSecurityKey(Encoding.UTF8.GetBytes(key)),
+            SecurityAlgorithms.HmacSha256);
+
+        var claims = new[]
+        {
+            new Claim(ClaimTypes.NameIdentifier, user.Id.ToString()),
+            new Claim(ClaimTypes.Email, user.Email),
+            new Claim(ClaimTypes.Name, user.FullName),
+            new Claim(ClaimTypes.Role, user.Role.ToString())
+        };
+
+        return new JwtSecurityTokenHandler().WriteToken(new JwtSecurityToken(
+            claims: claims,
+            expires: DateTime.UtcNow.AddDays(14),
+            signingCredentials: credentials));
     }
 }
