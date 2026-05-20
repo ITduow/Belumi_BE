@@ -1,4 +1,5 @@
 using Belumi.Core.DTOs;
+using Belumi.Core.Entities;
 using Belumi.Core.Interfaces;
 using Microsoft.AspNetCore.Mvc;
 
@@ -35,8 +36,20 @@ public sealed class AuthController(IAuthService authService) : ControllerBase
     }
 
     [HttpPost("admin-login")]
-    public Task<ActionResult<AuthResponse>> AdminLogin(LoginRequest request, CancellationToken cancellationToken) =>
-        Login(request, cancellationToken);
+    public async Task<ActionResult<AuthResponse>> AdminLogin(LoginRequest request, CancellationToken cancellationToken)
+    {
+        try
+        {
+            var response = await authService.LoginAsync(request, cancellationToken);
+            return response.Role == UserRole.Admin
+                ? Ok(response)
+                : Unauthorized(new { message = "Bạn không có quyền truy cập" });
+        }
+        catch (UnauthorizedAccessException ex)
+        {
+            return Unauthorized(new { message = ex.Message });
+        }
+    }
 
     [HttpPost("firebase-login")]
     public async Task<ActionResult<AuthResponse>> FirebaseLogin(FirebaseLoginRequest request, CancellationToken cancellationToken)

@@ -70,3 +70,12 @@ C:\Users\codei\OneDrive\Desktop\Belumi_EXE201\BelumiApi\Belumi.API\bin\Debug\net
 C:\Users\codei\OneDrive\Desktop\Belumi_EXE201\BelumiApi\Belumi.API\bin\Debug\net8.0\System.CodeDom.dll
 C:\Users\codei\OneDrive\Desktop\Belumi_EXE201\BelumiApi\Belumi.API\bin\Debug\net8.0\System.Management.dll
 C:\Users\codei\OneDrive\Desktop\Belumi_EXE201\BelumiApi\Belumi.API\bin\Debug\net8.0\runtimes\win\lib\net7.0\System.Management.dll
+C:\tmp\belumi-api-build-check\appsettings.Development.json
+C:\tmp\belumi-api-build-check\appsettings.json
+C:\tmp\belumi-api-build-check\Belumi.API.staticwebassets.endpoints.json
+C:\tmp\belumi-api-build-check\Belumi.API.exe
+C:\tmp\belumi-api-build-check\Belumi.API.deps.json
+C:\tmp\belumi-api-build-check\Belumi.API.runtimeconfig.json
+C:\tmp\belumi-api-build-check\Belumi.API.dll
+C:\tmp\belumi-api-build-check\Belumi.API.pdb
+C:\Users\codei\OneDrive\Desktop\Belumi_EXE201\BelumiApi\Belumi.API\obj\Debug\net8.0\staticwebassets.upToDateCheck.txt

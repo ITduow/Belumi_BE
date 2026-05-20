@@ -33,6 +33,21 @@ builder.Services.AddInfrastructure(builder.Configuration);
 
 var app = builder.Build();
 
+app.UseExceptionHandler(handler =>
+{
+    handler.Run(async context =>
+    {
+        context.Response.StatusCode = StatusCodes.Status500InternalServerError;
+        context.Response.ContentType = "application/json";
+        await context.Response.WriteAsJsonAsync(new
+        {
+            success = false,
+            message = "Unexpected server error.",
+            errors = Array.Empty<string>()
+        });
+    });
+});
+
 if (app.Environment.IsDevelopment())
 {
     app.UseSwagger();
@@ -48,7 +63,7 @@ app.MapControllers();
 using (var scope = app.Services.CreateScope())
 {
     var db = scope.ServiceProvider.GetRequiredService<BelumiDbContext>();
-    await db.Database.EnsureCreatedAsync();
+    await BelumiSchemaBootstrapper.EnsureSchemaAsync(db);
     await BelumiSeedData.SeedAsync(db);
 }
 

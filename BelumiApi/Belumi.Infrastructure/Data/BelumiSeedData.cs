@@ -8,23 +8,18 @@ public static class BelumiSeedData
 {
     public static async Task SeedAsync(BelumiDbContext db)
     {
+        await EnsureSubscriptionPlansAsync(db);
+        await EnsureAdminAsync(db);
+
         if (await db.Categories.AnyAsync())
         {
+            await db.SaveChangesAsync();
             return;
         }
 
         var skincare = new Category { Name = "Skincare", IconUrl = "https://images.unsplash.com/photo-1556228720-195a672e8a03", SortOrder = 1 };
         var makeup = new Category { Name = "Makeup", IconUrl = "https://images.unsplash.com/photo-1596462502278-27bfdc403348", SortOrder = 2 };
         var spa = new Category { Name = "Spa Services", IconUrl = "https://images.unsplash.com/photo-1515377905703-c4788e51af15", SortOrder = 3 };
-
-        var admin = new User
-        {
-            Email = "admin@belumi.com",
-            FullName = "Belumi Admin",
-            Phone = "0900000000",
-            PasswordHash = PasswordHasher.Hash("belumi2026"),
-            Role = UserRole.Admin
-        };
 
         var customer = new User
         {
@@ -64,7 +59,7 @@ public static class BelumiSeedData
             Category = skincare
         };
 
-        db.AddRange(skincare, makeup, spa, admin, customer, serum, cream);
+        db.AddRange(skincare, makeup, spa, customer, serum, cream);
         db.Services.AddRange(
             new Service
             {
@@ -88,17 +83,23 @@ public static class BelumiSeedData
         db.BlogPosts.AddRange(
             new BlogPost
             {
-                Title = "How to Build a Gentle Morning Routine",
+            Title = "How to Build a Gentle Morning Routine",
+                Slug = "gentle-morning-routine",
+                Summary = "A simple AM routine for healthy, calm skin.",
                 Content = "Cleanse lightly, hydrate well, protect with sunscreen, and keep actives simple.",
                 CoverImageUrl = "https://images.unsplash.com/photo-1522335789203-aabd1fc54bc9",
+                Category = "Skincare",
                 Author = "Belumi Team",
                 PublishedAt = DateTime.UtcNow.AddDays(-3)
             },
             new BlogPost
             {
                 Title = "Niacinamide: Small Ingredient, Big Range",
+                Slug = "niacinamide-guide",
+                Summary = "Why niacinamide is useful for oil, tone, and barrier care.",
                 Content = "Niacinamide can support oil balance, tone, and skin barrier comfort.",
                 CoverImageUrl = "https://images.unsplash.com/photo-1608248543803-ba4f8c70ae0b",
+                Category = "Ingredient",
                 Author = "Belumi Lab",
                 PublishedAt = DateTime.UtcNow.AddDays(-1)
             });
@@ -146,5 +147,61 @@ public static class BelumiSeedData
             });
 
         await db.SaveChangesAsync();
+    }
+
+    private static async Task EnsureAdminAsync(BelumiDbContext db)
+    {
+        if (await db.Users.AnyAsync(user => user.Email == "admin@belumi.com"))
+        {
+            return;
+        }
+
+        db.Users.Add(new User
+        {
+            Email = "admin@belumi.com",
+            FullName = "Belumi Admin",
+            Phone = "0900000000",
+            PasswordHash = PasswordHasher.Hash("belumi2026"),
+            Role = UserRole.Admin,
+            SubscriptionPlan = "Pro",
+            IsActive = true
+        });
+    }
+
+    private static async Task EnsureSubscriptionPlansAsync(BelumiDbContext db)
+    {
+        if (await db.SubscriptionPlans.AnyAsync())
+        {
+            return;
+        }
+
+        db.SubscriptionPlans.AddRange(
+            new SubscriptionPlan
+            {
+                Name = "Free",
+                Price = 0,
+                MonthlyAiLimit = 3,
+                IngredientLookupLimit = 5,
+                MakeupConsultationLimit = 2,
+                CanUseAdvancedAnalysis = false
+            },
+            new SubscriptionPlan
+            {
+                Name = "Plus",
+                Price = 99000,
+                MonthlyAiLimit = 50,
+                IngredientLookupLimit = 100,
+                MakeupConsultationLimit = 50,
+                CanUseAdvancedAnalysis = true
+            },
+            new SubscriptionPlan
+            {
+                Name = "Pro",
+                Price = 199000,
+                MonthlyAiLimit = 200,
+                IngredientLookupLimit = 300,
+                MakeupConsultationLimit = 200,
+                CanUseAdvancedAnalysis = true
+            });
     }
 }

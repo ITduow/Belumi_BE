@@ -7,9 +7,9 @@ public sealed class PaymentService : IPaymentService
 {
     public IReadOnlyCollection<object> GetPlans() =>
     [
-        new { code = "free", name = "Free", price = 0, features = new[] { "Skin AI mock", "News", "Wishlist basic" } },
-        new { code = "plus", name = "Plus", price = 99000, features = new[] { "Ingredient OCR lookup", "More AI scans", "Wishlist sync" } },
-        new { code = "pro", name = "Pro", price = 199000, features = new[] { "Virtual makeup", "Advanced Gemini consultation", "Priority recommendations" } }
+        new { code = "free", name = "Free", price = 0, features = new[] { "Basic ingredient lookup", "Basic skin analysis", "Virtual makeup preview", "Wishlist local save" } },
+        new { code = "plus", name = "Premium", price = 99000, features = new[] { "Advanced ingredient scan", "Unlimited AI recommendations", "Personalized skincare routine", "No interruptive ads" } },
+        new { code = "pro", name = "Annual", price = 199000, features = new[] { "Best value yearly access", "Advanced Gemini consultation", "Virtual try-on priority", "Priority product recommendations" } }
     ];
 
     public PaymentQrResponse CreateVietQr(PaymentQrRequest request)

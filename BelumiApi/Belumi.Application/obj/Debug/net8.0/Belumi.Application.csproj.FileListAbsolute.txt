@@ -14,3 +14,6 @@ C:\Users\codei\OneDrive\Desktop\Belumi_EXE201\BelumiApi\Belumi.Application\obj\D
 C:\Users\codei\OneDrive\Desktop\Belumi_EXE201\BelumiApi\Belumi.Application\obj\Debug\net8.0\refint\Belumi.Application.dll
 C:\Users\codei\OneDrive\Desktop\Belumi_EXE201\BelumiApi\Belumi.Application\obj\Debug\net8.0\Belumi.Application.pdb
 C:\Users\codei\OneDrive\Desktop\Belumi_EXE201\BelumiApi\Belumi.Application\obj\Debug\net8.0\ref\Belumi.Application.dll
+C:\tmp\belumi-api-build-check\Belumi.Application.deps.json
+C:\tmp\belumi-api-build-check\Belumi.Application.dll
+C:\tmp\belumi-api-build-check\Belumi.Application.pdb
