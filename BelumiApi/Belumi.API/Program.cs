@@ -1,14 +1,20 @@
-using System.Text;
+using Belumi.API.Common;
 using Belumi.API.Middleware;
-using Belumi.Infrastructure.Data;
+using Belumi.Application.Validators;
 using Belumi.Infrastructure;
-using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Belumi.Infrastructure.Data;
+using FluentValidation;
+using Microsoft.AspNetCore.Authentication;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.IdentityModel.Tokens;
 
 var builder = WebApplication.CreateBuilder(args);
 
-builder.Services.AddControllers();
+builder.Services.AddControllers(options =>
+{
+    options.Filters.Add<ValidationFilter>();
+});
+
+builder.Services.AddValidatorsFromAssemblyContaining<FirebaseLoginRequestValidator>();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 builder.Services.AddCors(options =>
@@ -17,28 +23,24 @@ builder.Services.AddCors(options =>
         policy.AllowAnyHeader().AllowAnyMethod().AllowAnyOrigin());
 });
 
-var jwtKey = builder.Configuration["Jwt:Key"] ?? "BelumiBeautyLocalDevelopmentKeyMustBeLong";
-builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
-    .AddJwtBearer(options =>
-    {
-        options.TokenValidationParameters = new TokenValidationParameters
-        {
-            ValidateIssuer = false,
-            ValidateAudience = false,
-            ValidateIssuerSigningKey = true,
-            IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtKey))
-        };
-    });
+builder.Services.AddAuthentication(BelumiBearerAuthenticationHandler.SchemeName)
+    .AddScheme<AuthenticationSchemeOptions, BelumiBearerAuthenticationHandler>(
+        BelumiBearerAuthenticationHandler.SchemeName,
+        options => { });
 builder.Services.AddAuthorization();
 
 builder.Services.AddInfrastructure(builder.Configuration);
 
+builder.Services.AddExceptionHandler<GlobalExceptionHandler>();
+builder.Services.AddProblemDetails();
+
 var app = builder.Build();
 
-// Task 18: Bật Swagger cả production (Railway) để test dễ dàng
+app.UseExceptionHandler();
+
+// Task 18: Bật Swagger cả production để test dễ dàng
 app.UseSwagger();
 app.UseSwaggerUI();
-
 
 app.UseHttpsRedirection();
 app.UseStaticFiles(); // Task 20: Enable serving uploaded static files under wwwroot

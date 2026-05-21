@@ -22,6 +22,43 @@ namespace Belumi.Infrastructure.Migrations
 
             NpgsqlModelBuilderExtensions.UseIdentityByDefaultColumns(modelBuilder);
 
+            modelBuilder.Entity("Belumi.Core.Entities.AiUsageLog", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("FeatureName")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("RequestData")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("ResponseData")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<int>("TokenUsed")
+                        .HasColumnType("integer");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid>("UserId")
+                        .HasColumnType("uuid");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("UserId");
+
+                    b.ToTable("AiUsageLogs");
+                });
+
             modelBuilder.Entity("Belumi.Core.Entities.Banner", b =>
                 {
                     b.Property<Guid>("Id")
@@ -98,6 +135,10 @@ namespace Belumi.Infrastructure.Migrations
                         .IsRequired()
                         .HasColumnType("text");
 
+                    b.Property<string>("Category")
+                        .IsRequired()
+                        .HasColumnType("text");
+
                     b.Property<string>("Content")
                         .IsRequired()
                         .HasColumnType("text");
@@ -114,6 +155,14 @@ namespace Belumi.Infrastructure.Migrations
                     b.Property<DateTime>("PublishedAt")
                         .HasColumnType("timestamp with time zone");
 
+                    b.Property<string>("Slug")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("Summary")
+                        .IsRequired()
+                        .HasColumnType("text");
+
                     b.Property<string>("Title")
                         .IsRequired()
                         .HasColumnType("text");
@@ -122,6 +171,9 @@ namespace Belumi.Infrastructure.Migrations
                         .HasColumnType("timestamp with time zone");
 
                     b.HasKey("Id");
+
+                    b.HasIndex("Slug")
+                        .IsUnique();
 
                     b.ToTable("BlogPosts");
                 });
@@ -237,6 +289,53 @@ namespace Belumi.Infrastructure.Migrations
                     b.ToTable("Ingredients");
                 });
 
+            modelBuilder.Entity("Belumi.Core.Entities.IngredientLookup", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("AiResult")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("ImageUrl")
+                        .HasColumnType("text");
+
+                    b.Property<string>("InputText")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("OcrText")
+                        .HasColumnType("text");
+
+                    b.Property<int>("SafetyScore")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("SuitableSkinTypes")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid>("UserId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("WarningNotes")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("UserId");
+
+                    b.ToTable("IngredientLookups");
+                });
+
             modelBuilder.Entity("Belumi.Core.Entities.MakeupCatalogItem", b =>
                 {
                     b.Property<Guid>("Id")
@@ -280,6 +379,110 @@ namespace Belumi.Infrastructure.Migrations
                     b.ToTable("MakeupCatalogItems");
                 });
 
+            modelBuilder.Entity("Belumi.Core.Entities.MakeupConsultation", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("AiResult")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("BlushSuggestion")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("EyeMakeupSuggestion")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("FoundationSuggestion")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("LipColorSuggestion")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("Note")
+                        .HasColumnType("text");
+
+                    b.Property<string>("Occasion")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("SkinTone")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("StylePreference")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid>("UserId")
+                        .HasColumnType("uuid");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("UserId");
+
+                    b.ToTable("MakeupConsultations");
+                });
+
+            modelBuilder.Entity("Belumi.Core.Entities.Payment", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<decimal>("Amount")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("numeric(18,2)");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("Currency")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("PaymentMethod")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("PaymentStatus")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<Guid>("PlanId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("TransactionCode")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid>("UserId")
+                        .HasColumnType("uuid");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("PlanId");
+
+                    b.HasIndex("UserId");
+
+                    b.ToTable("Payments");
+                });
+
             modelBuilder.Entity("Belumi.Core.Entities.Product", b =>
                 {
                     b.Property<Guid>("Id")
@@ -287,6 +490,10 @@ namespace Belumi.Infrastructure.Migrations
                         .HasColumnType("uuid");
 
                     b.Property<string>("Benefits")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("Brand")
                         .IsRequired()
                         .HasColumnType("text");
 
@@ -298,6 +505,9 @@ namespace Belumi.Infrastructure.Migrations
 
                     b.Property<string>("Description")
                         .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("ImageUrl")
                         .HasColumnType("text");
 
                     b.Property<string>("Ingredients")
@@ -314,6 +524,9 @@ namespace Belumi.Infrastructure.Migrations
                     b.Property<decimal>("Price")
                         .HasPrecision(18, 2)
                         .HasColumnType("numeric(18,2)");
+
+                    b.Property<string>("SuitableSkinTypes")
+                        .HasColumnType("text");
 
                     b.Property<string>("ThumbnailUrl")
                         .HasColumnType("text");
@@ -478,8 +691,17 @@ namespace Belumi.Infrastructure.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("uuid");
 
+                    b.Property<string>("AgeRange")
+                        .HasColumnType("text");
+
+                    b.Property<string>("AiResult")
+                        .HasColumnType("text");
+
                     b.Property<DateTime>("AnalyzedAt")
                         .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("AvoidIngredients")
+                        .HasColumnType("text");
 
                     b.Property<string>("Concerns")
                         .IsRequired()
@@ -492,12 +714,24 @@ namespace Belumi.Infrastructure.Migrations
                         .IsRequired()
                         .HasColumnType("text");
 
+                    b.Property<string>("MorningRoutine")
+                        .HasColumnType("text");
+
+                    b.Property<string>("NightRoutine")
+                        .HasColumnType("text");
+
                     b.Property<string>("Recommendations")
                         .IsRequired()
                         .HasColumnType("text");
 
+                    b.Property<string>("RecommendedIngredients")
+                        .HasColumnType("text");
+
                     b.Property<int>("Score")
                         .HasColumnType("integer");
+
+                    b.Property<string>("SensitivityLevel")
+                        .HasColumnType("text");
 
                     b.Property<string>("SkinType")
                         .IsRequired()
@@ -509,11 +743,54 @@ namespace Belumi.Infrastructure.Migrations
                     b.Property<Guid>("UserId")
                         .HasColumnType("uuid");
 
+                    b.Property<string>("UserNote")
+                        .HasColumnType("text");
+
                     b.HasKey("Id");
 
                     b.HasIndex("UserId");
 
                     b.ToTable("SkinAnalyses");
+                });
+
+            modelBuilder.Entity("Belumi.Core.Entities.SubscriptionPlan", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<bool>("CanUseAdvancedAnalysis")
+                        .HasColumnType("boolean");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<int>("IngredientLookupLimit")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("MakeupConsultationLimit")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("MonthlyAiLimit")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<decimal>("Price")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("numeric(18,2)");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("Name")
+                        .IsUnique();
+
+                    b.ToTable("SubscriptionPlans");
                 });
 
             modelBuilder.Entity("Belumi.Core.Entities.User", b =>
@@ -532,9 +809,15 @@ namespace Belumi.Infrastructure.Migrations
                         .IsRequired()
                         .HasColumnType("text");
 
+                    b.Property<string>("FirebaseUid")
+                        .HasColumnType("text");
+
                     b.Property<string>("FullName")
                         .IsRequired()
                         .HasColumnType("text");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("boolean");
 
                     b.Property<string>("PasswordHash")
                         .IsRequired()
@@ -547,6 +830,10 @@ namespace Belumi.Infrastructure.Migrations
                         .IsRequired()
                         .HasColumnType("text");
 
+                    b.Property<string>("SubscriptionPlan")
+                        .IsRequired()
+                        .HasColumnType("text");
+
                     b.Property<DateTime?>("UpdatedAt")
                         .HasColumnType("timestamp with time zone");
 
@@ -556,6 +843,47 @@ namespace Belumi.Infrastructure.Migrations
                         .IsUnique();
 
                     b.ToTable("Users");
+                });
+
+            modelBuilder.Entity("Belumi.Core.Entities.UserSubscription", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<DateTime?>("EndDate")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("PaymentStatus")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<Guid>("PlanId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("StartDate")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid>("UserId")
+                        .HasColumnType("uuid");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("PlanId");
+
+                    b.HasIndex("UserId");
+
+                    b.ToTable("UserSubscriptions");
                 });
 
             modelBuilder.Entity("Belumi.Core.Entities.WishlistItem", b =>
@@ -586,6 +914,17 @@ namespace Belumi.Infrastructure.Migrations
                     b.ToTable("WishlistItems");
                 });
 
+            modelBuilder.Entity("Belumi.Core.Entities.AiUsageLog", b =>
+                {
+                    b.HasOne("Belumi.Core.Entities.User", "User")
+                        .WithMany()
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("User");
+                });
+
             modelBuilder.Entity("Belumi.Core.Entities.BeautyProfile", b =>
                 {
                     b.HasOne("Belumi.Core.Entities.User", "User")
@@ -602,6 +941,47 @@ namespace Belumi.Infrastructure.Migrations
                     b.HasOne("Belumi.Core.Entities.Recipe", null)
                         .WithMany("Ingredients")
                         .HasForeignKey("RecipeId");
+                });
+
+            modelBuilder.Entity("Belumi.Core.Entities.IngredientLookup", b =>
+                {
+                    b.HasOne("Belumi.Core.Entities.User", "User")
+                        .WithMany()
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("User");
+                });
+
+            modelBuilder.Entity("Belumi.Core.Entities.MakeupConsultation", b =>
+                {
+                    b.HasOne("Belumi.Core.Entities.User", "User")
+                        .WithMany()
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("User");
+                });
+
+            modelBuilder.Entity("Belumi.Core.Entities.Payment", b =>
+                {
+                    b.HasOne("Belumi.Core.Entities.SubscriptionPlan", "Plan")
+                        .WithMany()
+                        .HasForeignKey("PlanId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("Belumi.Core.Entities.User", "User")
+                        .WithMany()
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Plan");
+
+                    b.Navigation("User");
                 });
 
             modelBuilder.Entity("Belumi.Core.Entities.Product", b =>
@@ -655,6 +1035,25 @@ namespace Belumi.Infrastructure.Migrations
                         .HasForeignKey("UserId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
+
+                    b.Navigation("User");
+                });
+
+            modelBuilder.Entity("Belumi.Core.Entities.UserSubscription", b =>
+                {
+                    b.HasOne("Belumi.Core.Entities.SubscriptionPlan", "Plan")
+                        .WithMany()
+                        .HasForeignKey("PlanId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("Belumi.Core.Entities.User", "User")
+                        .WithMany()
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Plan");
 
                     b.Navigation("User");
                 });

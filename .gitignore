@@ -1,9 +1,22 @@
+.vs/
+
+# .NET
 bin/
 obj/
 *.user
 *.suo
+appsettings.Development.json
+
+# Flutter/Dart
+.dart_tool/
+build/
+.flutter-plugins
+.flutter-plugins-dependencies
+
+# Local secrets and logs
+.env
 *.log
-.vs/
 *.DS_Store
 **/Firebase/serviceAccountKey.json
 **/Firebase/*.json
+firebase-service-account*.json
