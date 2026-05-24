@@ -1,353 +1,506 @@
-using Belumi.Core.DTOs;
-using Belumi.Core.Entities;
-using Belumi.Core.Interfaces;
-using Belumi.Infrastructure.Data;
-using Microsoft.Extensions.Configuration;
-using System.Net.Http.Json;
+using System.Security.Cryptography;
 using System.Text.Json;
+using Microsoft.Extensions.Caching.Memory;
+using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.Logging;
+using SixLabors.ImageSharp;
+using SixLabors.ImageSharp.Formats.Jpeg;
+using SixLabors.ImageSharp.Processing;
+using Belumi.Core.Interfaces;
+using Belumi.Core.DTOs.Gemini;
+using OpenAI;
+using OpenAI.Chat;
+using System;
+using System.Collections.Generic;
+using System.IO;
+using System.Linq;
+using System.Threading.Tasks;
 
 namespace Belumi.Infrastructure.Services;
 
-public sealed class SkinAnalysisService(BelumiDbContext db, HttpClient httpClient, IConfiguration configuration) : ISkinAnalysisService
+public class SkinAnalysisService : ISkinAnalysisService
 {
-    public async Task<SkinAnalysis> AnalyzeAsync(Guid userId, SkinAnalysisRequest request, CancellationToken cancellationToken)
+    private readonly IMemoryCache _cache;
+    private readonly ILogger<SkinAnalysisService> _logger;
+    private readonly IConfiguration _configuration;
+
+    public SkinAnalysisService(
+        IMemoryCache cache,
+        ILogger<SkinAnalysisService> logger,
+        IConfiguration configuration)
     {
-        var skinType = Normalize(request.SkinType, "Combination");
-        var concerns = request.Concerns?.Where(x => !string.IsNullOrWhiteSpace(x)).Select(x => x.Trim()).Distinct(StringComparer.OrdinalIgnoreCase).ToArray()
-            ?? [];
-        var goal = Normalize(request.Goal, "Build a simple, healthy barrier-first skincare routine.");
-        var plan = Normalize(request.PlanCode, "free").ToLowerInvariant();
-        var imageUrl = request.ImageUrl?.Trim() ?? string.Empty;
-        var imageData = TryParseDataUrl(imageUrl);
-        var canUseImage = plan == "pro" && (!string.IsNullOrWhiteSpace(imageUrl) || imageData is not null);
-        var detailLevel = plan switch
-        {
-            "pro" => "Pro image-aware Gemini consultation",
-            "plus" => "Plus detailed Gemini consultation",
-            _ => "Free basic consultation"
-        };
-
-        var concernText = concerns.Length == 0 ? "general dullness and routine consistency" : string.Join(", ", concerns);
-        var score = Math.Clamp(72 + skinType.Length + concerns.Length * 2 + (canUseImage ? 5 : 0), 70, 96);
-        var analysisSummary = BuildAnalysisSummary(skinType, concerns, goal, canUseImage, detailLevel);
-        var fallbackRecommendations = BuildFallbackRecommendations(plan, skinType, concerns, goal, analysisSummary);
-        var recommendations = await TryGenerateGeminiRecommendationsAsync(
-            plan,
-            skinType,
-            concerns,
-            goal,
-            imageUrl,
-            imageData,
-            canUseImage,
-            fallbackRecommendations,
-            cancellationToken);
-
-        var analysis = new SkinAnalysis
-        {
-            UserId = userId,
-            ImageUrl = imageData is null ? imageUrl : $"uploaded:{imageData.MimeType};bytes={imageData.Base64Data.Length}",
-            SkinType = skinType,
-            Concerns = concernText,
-            AgeRange = request.Goal?.Contains("18") == true ? request.Goal : null,
-            SensitivityLevel = concerns.FirstOrDefault(x => x.Contains("sensitive", StringComparison.OrdinalIgnoreCase) || x.Contains("nhay", StringComparison.OrdinalIgnoreCase)),
-            UserNote = goal,
-            AiResult = recommendations,
-            MorningRoutine = ExtractSection(recommendations, "Morning routine") ?? BuildMorningRoutine(plan, skinType),
-            NightRoutine = ExtractSection(recommendations, "Evening routine") ?? BuildEveningRoutine(plan, skinType, concerns),
-            RecommendedIngredients = ExtractSection(recommendations, "Ingredients to use") ?? BuildUseIngredients(skinType, concerns),
-            AvoidIngredients = ExtractSection(recommendations, "Ingredients to avoid") ?? BuildAvoidIngredients(skinType, concerns),
-            Recommendations = recommendations,
-            Score = score
-        };
-
-        db.SkinAnalyses.Add(analysis);
-        db.AiUsageLogs.Add(new AiUsageLog
-        {
-            UserId = userId,
-            FeatureName = "skincare",
-            TokenUsed = Math.Max(1, recommendations.Length / 4),
-            RequestData = JsonSerializer.Serialize(request),
-            ResponseData = recommendations
-        });
-        await db.SaveChangesAsync(cancellationToken);
-        return analysis;
+        _cache         = cache;
+        _logger        = logger;
+        _configuration = configuration;
     }
 
-    private static string? ExtractSection(string value, string section)
-    {
-        var prefix = section + ":";
-        var part = value.Split("\n\n", StringSplitOptions.RemoveEmptyEntries)
-            .FirstOrDefault(x => x.StartsWith(prefix, StringComparison.OrdinalIgnoreCase));
-        return part is null ? null : part[prefix.Length..].Trim();
-    }
+    // ─────────────────────────────────────────────────────────────────────────
+    // PUBLIC
+    // ─────────────────────────────────────────────────────────────────────────
 
-    private async Task<string> TryGenerateGeminiRecommendationsAsync(
-        string plan,
-        string skinType,
-        IReadOnlyCollection<string> concerns,
-        string goal,
-        string imageUrl,
-        GeminiImageData? imageData,
-        bool canUseImage,
-        string fallback,
-        CancellationToken cancellationToken)
+    public async Task<AnalysisResponse> AnalyzeAsync(byte[] imageBytes, string skinType)
     {
-        var apiKey = Environment.GetEnvironmentVariable("GEMINI_API_KEY") ?? configuration["Gemini:ApiKey"];
-        if (string.IsNullOrWhiteSpace(apiKey))
+        var validationError = ValidateImage(imageBytes);
+        if (validationError != null)
         {
-            return fallback;
+            _logger.LogWarning("Image validation failed: {Error}", validationError);
+            return new AnalysisResponse { Status = "retake_required", Message = validationError };
         }
 
+        byte[] processedImage;
         try
         {
-            var model = configuration["Gemini:Model"] ?? "gemini-2.5-flash";
-            var endpointTemplate = configuration["Gemini:Endpoint"]
-                ?? "https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent";
-            var endpoint = endpointTemplate.Replace("{model}", Uri.EscapeDataString(model), StringComparison.Ordinal);
-
-            using var message = new HttpRequestMessage(HttpMethod.Post, endpoint);
-            message.Headers.TryAddWithoutValidation("x-goog-api-key", apiKey);
-            var parts = new List<object>
+            processedImage = PreprocessImage(imageBytes);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Image preprocessing failed");
+            return new AnalysisResponse
             {
-                new
-                {
-                    text = BuildGeminiPrompt(plan, skinType, concerns, goal, imageUrl, imageData is not null, canUseImage)
-                }
+                Status  = "error",
+                Message = $"Ảnh không hợp lệ hoặc bị lỗi: {ex.Message}"
             };
-            if (canUseImage && imageData is not null)
-            {
-                parts.Add(new
-                {
-                    inline_data = new
-                    {
-                        mime_type = imageData.MimeType,
-                        data = imageData.Base64Data
-                    }
-                });
-            }
-
-            message.Content = JsonContent.Create(new
-            {
-                contents = new[]
-                {
-                    new
-                    {
-                        role = "user",
-                        parts
-                    }
-                },
-                generationConfig = new
-                {
-                    temperature = 0.35,
-                    topP = 0.9,
-                    maxOutputTokens = plan == "free" ? 700 : 1400
-                }
-            });
-
-            using var response = await httpClient.SendAsync(message, cancellationToken);
-            if (!response.IsSuccessStatusCode)
-            {
-                return fallback;
-            }
-
-            var payload = await response.Content.ReadFromJsonAsync<JsonElement>(cancellationToken);
-            var text = ExtractGeminiText(payload);
-            return string.IsNullOrWhiteSpace(text) ? fallback : text.Trim();
         }
-        catch
+
+        var imageHash = ComputeHash(processedImage);
+        var cacheKey  = $"skin:{skinType}:{imageHash}";
+
+        if (_cache.TryGetValue(cacheKey, out SkinAnalysisResult? cached) && cached != null)
         {
-            return fallback;
+            _logger.LogInformation("Cache hit for key {CacheKey}", cacheKey);
+            return new AnalysisResponse { Status = "success", Result = cached, FromCache = true };
         }
+
+        SkinAnalysisResult? result;
+        try
+        {
+            result = await CallOpenAiAsync(processedImage, skinType);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "OpenAI API call failed");
+            return new AnalysisResponse { Status = "error", Message = $"Lỗi AI: {ex.Message}" };
+        }
+
+        if (result == null)
+        {
+            _logger.LogWarning("OpenAI returned null result for skinType={SkinType}", skinType);
+            return new AnalysisResponse { Status = "error", Message = "AI không trả về kết quả hợp lệ" };
+        }
+
+        _logger.LogInformation("OpenAI confidence={Confidence}, score={Score}, acne={Acne}",
+            result.Confidence, result.OverallScore, result.AcneLevel);
+
+        if (result.Confidence < 0.65)
+        {
+            return new AnalysisResponse
+            {
+                Status  = "retake_required",
+                Message = "Ảnh chưa đủ rõ. Vui lòng chụp ở nơi có ánh sáng tốt hơn."
+            };
+        }
+
+        result.SkinCondition = GenerateSkinCondition(result);
+        result.Description   = GenerateDescription(result, skinType);
+        result.Advice        = GenerateAdvice(result, skinType);
+        result.Warnings      = GenerateWarnings(result, skinType);
+
+        _cache.Set(cacheKey, result, TimeSpan.FromHours(24));
+
+        return new AnalysisResponse { Status = "success", Result = result, FromCache = false };
     }
 
-    private static string BuildGeminiPrompt(
-        string plan,
-        string skinType,
-        IReadOnlyCollection<string> concerns,
-        string goal,
-        string imageUrl,
-        bool hasInlineImage,
-        bool canUseImage)
+    // ─────────────────────────────────────────────────────────────────────────
+    // SKIN CONDITION
+    // ─────────────────────────────────────────────────────────────────────────
+
+    private static string GenerateSkinCondition(SkinAnalysisResult result)
     {
-        var detailInstruction = plan switch
+        var concernCount = 0;
+        if (result.AcneLevel != "none") concernCount++;
+        if (result.DarkSpots)           concernCount++;
+        if (result.EnlargedPores)       concernCount++;
+        if (result.Redness)             concernCount++;
+        if (result.UnevenTone)          concernCount++;
+
+        return result.AcneLevel switch
         {
-            "pro" => "Give a detailed, professional but safe skincare consultation. If image context is present, mention visible-signal limitations and do not diagnose disease.",
-            "plus" => "Give a detailed skincare consultation with clear routines and ingredient logic.",
-            _ => "Give a concise basic skincare consultation."
+            "severe"   => "critical",
+            "moderate" => "needs_care",
+            "mild"     => "needs_attention",
+            "none"     => concernCount >= 2 ? "needs_attention" : "good",
+            _          => "good"
         };
-        var imageInstruction = hasInlineImage
-            ? "The user uploaded a face skin image. The image is attached as inline_data. Use visible cues such as shine, redness, texture, dryness and uneven tone, but do not diagnose disease."
-            : canUseImage
-            ? $"The user supplied this skin image URL for Pro analysis: {imageUrl}. If you cannot fetch URLs, treat it as contextual metadata and rely on the questionnaire."
-            : "No image analysis is available for this plan.";
-
-        return $"""
-You are Belumi Beauty's skincare AI assistant. Respond in Vietnamese without accents for app compatibility.
-{detailInstruction}
-Skin type: {skinType}
-Concerns: {(concerns.Count == 0 ? "general routine support" : string.Join(", ", concerns))}
-Goal: {goal}
-Plan: {plan}
-Image context: {imageInstruction}
-
-Return exactly these sections and keep each section practical:
-Analysis:
-Morning routine:
-Evening routine:
-Ingredients to use:
-Ingredients to avoid:
-Product suggestions:
-""";
     }
 
-    private static string ExtractGeminiText(JsonElement payload)
+    // ─────────────────────────────────────────────────────────────────────────
+    // DESCRIPTION — 2 câu ngắn gọn, tự nhiên
+    // ─────────────────────────────────────────────────────────────────────────
+
+    private static string GenerateDescription(SkinAnalysisResult result, string skinType)
     {
-        if (!payload.TryGetProperty("candidates", out var candidates) || candidates.GetArrayLength() == 0)
+        var concerns = new List<string>();
+        if (result.AcneLevel != "none") concerns.Add(result.AcneLevel switch
         {
-            return string.Empty;
-        }
-
-        var first = candidates[0];
-        if (!first.TryGetProperty("content", out var content) || !content.TryGetProperty("parts", out var parts))
-        {
-            return string.Empty;
-        }
-
-        var chunks = new List<string>();
-        foreach (var part in parts.EnumerateArray())
-        {
-            if (part.TryGetProperty("text", out var text))
-            {
-                chunks.Add(text.GetString() ?? string.Empty);
-            }
-        }
-
-        return string.Join("\n", chunks);
-    }
-
-    private static GeminiImageData? TryParseDataUrl(string value)
-    {
-        const string marker = ";base64,";
-        if (!value.StartsWith("data:", StringComparison.OrdinalIgnoreCase))
-        {
-            return null;
-        }
-
-        var markerIndex = value.IndexOf(marker, StringComparison.OrdinalIgnoreCase);
-        if (markerIndex < 0)
-        {
-            return null;
-        }
-
-        var mimeType = value[5..markerIndex];
-        var base64Data = value[(markerIndex + marker.Length)..];
-        if (string.IsNullOrWhiteSpace(mimeType) || string.IsNullOrWhiteSpace(base64Data))
-        {
-            return null;
-        }
-
-        return new GeminiImageData(mimeType, base64Data);
-    }
-
-    private static string Normalize(string? value, string fallback) =>
-        string.IsNullOrWhiteSpace(value) ? fallback : value.Trim();
-
-    private static string BuildAnalysisSummary(string skinType, IReadOnlyCollection<string> concerns, string goal, bool canUseImage, string detailLevel)
-    {
-        var imageNote = canUseImage
-            ? "Face image signal is included for visible texture, redness, shine and uneven tone cues."
-            : "Image analysis is locked to Pro, so this result is based on the questionnaire.";
-        var concernText = concerns.Count == 0 ? "no severe concern selected" : string.Join(", ", concerns);
-        return $"{detailLevel}: {skinType} skin with {concernText}. Goal: {goal}. {imageNote}";
-    }
-
-    private static string BuildFallbackRecommendations(string plan, string skinType, IReadOnlyCollection<string> concerns, string goal, string analysisSummary) =>
-        string.Join("\n\n", new[]
-        {
-            $"Analysis: {analysisSummary}",
-            $"Morning routine: {BuildMorningRoutine(plan, skinType)}",
-            $"Evening routine: {BuildEveningRoutine(plan, skinType, concerns)}",
-            $"Ingredients to use: {BuildUseIngredients(skinType, concerns)}",
-            $"Ingredients to avoid: {BuildAvoidIngredients(skinType, concerns)}",
-            $"Product suggestions: {BuildProductSuggestions(plan, skinType, concerns)}"
+            "mild"     => "mụn nhẹ",
+            "moderate" => "mụn mức trung bình",
+            "severe"   => "mụn nặng",
+            _          => "mụn"
         });
+        if (result.DarkSpots)     concerns.Add("thâm");
+        if (result.EnlargedPores) concerns.Add("lỗ chân lông to");
+        if (result.Redness)       concerns.Add("vùng đỏ");
+        if (result.UnevenTone)    concerns.Add("da không đều màu");
 
-    private static string BuildMorningRoutine(string plan, string skinType)
-    {
-        var moisturizer = skinType.Contains("dry", StringComparison.OrdinalIgnoreCase) || skinType.Contains("kho", StringComparison.OrdinalIgnoreCase)
-            ? "ceramide cream"
-            : "light gel moisturizer";
-        var baseRoutine = $"Gentle cleanser -> hydrating toner -> vitamin C or niacinamide -> {moisturizer} -> broad-spectrum SPF 50.";
-        return plan == "free" ? baseRoutine : $"{baseRoutine} Reapply sunscreen every 2-3 hours when outdoors.";
+        string sentence1;
+        if (!concerns.Any())
+        {
+            sentence1 = result.OverallScore >= 80
+                ? "Da bạn đang trong tình trạng tốt, không có dấu hiệu đáng lo ngại."
+                : "Da bạn chưa có vấn đề rõ ràng nhưng vẫn có thể cải thiện thêm.";
+        }
+        else
+        {
+            var concernText = concerns.Count == 1
+                ? concerns[0]
+                : string.Join(", ", concerns[..^1]) + " và " + concerns[^1];
+
+            sentence1 = $"Da bạn có {concernText}.";
+        }
+
+        var sentence2 = (result.AcneLevel, skinType, result.DarkSpots) switch
+        {
+            ("severe", _, _) =>
+                "Tình trạng khá nghiêm trọng, nên tham khảo bác sĩ da liễu thay vì tự điều trị.",
+
+            ("moderate", "sensitive", _) =>
+                "Da nhạy cảm với mụn trung bình dễ để lại sẹo — cần ưu tiên làm dịu trước khi dùng active.",
+            ("moderate", _, true) =>
+                "Mụn trung bình kèm thâm cần được xử lý sớm để tránh thâm ăn sâu hơn.",
+            ("moderate", _, _) =>
+                "Tình trạng cần được chăm sóc tích cực hơn, nên bắt đầu routine ổn định sớm.",
+
+            ("mild", _, true) =>
+                "Tình trạng chưa nghiêm trọng nhưng cần xử lý sớm để tránh thâm kéo dài.",
+            ("mild", "oily", _) =>
+                "Mụn nhẹ trên da dầu thường cải thiện tốt nếu kiểm soát được bã nhờn và giữ routine ổn định.",
+            ("mild", "dry", _) =>
+                "Mụn nhẹ trên da khô thường do barrier yếu — ưu tiên dưỡng ẩm trước khi thêm treatment.",
+            ("mild", _, _) =>
+                "Tình trạng hiện tại nhẹ, có thể cải thiện rõ với routine đơn giản và kiên trì.",
+
+            ("none", "sensitive", _) when result.Redness =>
+                "Đỏ da trên da nhạy cảm cần theo dõi — ưu tiên sản phẩm dịu nhẹ và phục hồi barrier.",
+            ("none", "dry", _) when result.DarkSpots =>
+                "Da khô kèm thâm cần dưỡng ẩm tốt trước khi dùng active làm sáng để tránh kích ứng.",
+            ("none", "oily", _) when result.EnlargedPores =>
+                "Lỗ chân lông to trên da dầu thường do bã nhờn tích tụ — BHA định kỳ sẽ giúp cải thiện.",
+            ("none", _, _) when concerns.Any() =>
+                "Các dấu hiệu hiện tại chưa nghiêm trọng, duy trì routine đều đặn sẽ cải thiện tốt.",
+
+            _ => "Duy trì routine chăm sóc da sáng và tối là đủ để giữ da ở trạng thái tốt."
+        };
+
+        var ingredients = new HashSet<string>();
+
+        if (result.AcneLevel != "none")
+        {
+            ingredients.Add("azelaic acid");
+            ingredients.Add("benzoyl peroxide");
+            ingredients.Add("glycolic acid");
+            ingredients.Add("retinoids");
+            ingredients.Add("salicylic acid");
+        }
+
+        if (result.DarkSpots)
+        {
+            ingredients.Add("azelaic acid");
+            ingredients.Add("glycolic acid");
+            ingredients.Add("niacinamide");
+            ingredients.Add("retinoids");
+            ingredients.Add("vitamin C");
+        }
+
+        if (skinType == "oily")
+        {
+            ingredients.Add("benzoyl peroxide");
+            ingredients.Add("retinoids");
+            ingredients.Add("salicylic acid");
+        }
+
+        if (result.Redness)
+        {
+            ingredients.Add("mineral sunscreen");
+            ingredients.Add("niacinamide");
+        }
+
+        if (result.EnlargedPores)
+        {
+            ingredients.Add("retinoids");
+        }
+
+        string sentence3 = ingredients.Any()
+            ? $" Bạn có thể sử dụng sản phẩm chứa {string.Join(", ", ingredients.OrderBy(x => x))}."
+            : "";
+
+        return $"{sentence1} {sentence2}{sentence3}";
     }
 
-    private static string BuildEveningRoutine(string plan, string skinType, IReadOnlyCollection<string> concerns)
+    // ─────────────────────────────────────────────────────────────────────────
+    // ADVICE
+    // ─────────────────────────────────────────────────────────────────────────
+
+    private static List<string> GenerateAdvice(SkinAnalysisResult result, string skinType)
     {
-        var active = concerns.Any(x => x.Contains("mun", StringComparison.OrdinalIgnoreCase) || x.Contains("acne", StringComparison.OrdinalIgnoreCase))
-            ? "BHA 1-2 times/week on acne-prone areas"
-            : "low-strength retinol 1-2 nights/week";
-        if (skinType.Contains("sensitive", StringComparison.OrdinalIgnoreCase) || skinType.Contains("nhay", StringComparison.OrdinalIgnoreCase))
+        var advice = new List<string>();
+
+        advice.Add("Ưu tiên routine đơn giản và ổn định trong ít nhất 4 tuần trước khi đánh giá hiệu quả");
+        advice.Add("Dùng kem chống nắng SPF 30+ mỗi sáng, dù ở trong nhà");
+
+        switch (skinType)
         {
-            active = "azelaic acid or panthenol serum, introduced slowly";
+            case "oily":
+                advice.Add("Không bỏ bước dưỡng ẩm — da thiếu ẩm sẽ tiết dầu nhiều hơn để bù lại");
+                advice.Add("Rửa mặt tối đa 2 lần/ngày, thêm 1 lần nếu vừa vận động ra nhiều mồ hôi");
+                break;
+
+            case "dry":
+                advice.Add("Thoa moisturizer ngay khi da còn hơi ẩm sau rửa mặt để giữ nước tốt hơn");
+                advice.Add("Chỉ dùng sản phẩm ghi rõ \"fragrance-free\", không phải \"unscented\"");
+                break;
+
+            case "combination":
+                advice.Add("Có thể dùng cleanser nhẹ hơn ở vùng má và BHA nhẹ ở vùng T riêng biệt");
+                advice.Add("Dưỡng ẩm tập trung vùng má, tránh thoa nhiều lên vùng trán và mũi");
+                break;
+
+            case "sensitive":
+                advice.Add("Patch test sản phẩm mới ở cổ tay hoặc sau tai trước khi thoa lên mặt");
+                advice.Add("Chỉ thêm tối đa 1 sản phẩm mới vào routine tại một thời điểm");
+                break;
+
+            case "normal":
+                // Da thường cân bằng tự nhiên, không cần lời khuyên đặc thù theo loại da
+                break;
         }
 
-        var routine = $"Cleanser -> {active} -> barrier serum -> moisturizer.";
-        return plan == "free" ? routine : $"{routine} Keep one recovery night between active nights.";
+        if (result.AcneLevel != "none")
+            advice.Add("Thoa acne treatment lên cả vùng hay nổi mụn, không chỉ spot treatment lên từng nốt");
+
+        if (result.DarkSpots)
+            advice.Add("Dùng SPF 50+ khi ra ngoài — thiếu SPF làm thâm đậm hơn và kéo dài thời gian trị");
+
+        if (result.Redness)
+            advice.Add("Rửa mặt bằng nước ấm (không nóng) để tránh kích ứng thêm vùng đỏ");
+
+        if (result.EnlargedPores)
+            advice.Add("Làm sạch da kỹ vào buổi tối quan trọng hơn buổi sáng vì bã nhờn tích tụ suốt ngày");
+
+        return advice;
     }
 
-    private static string BuildUseIngredients(string skinType, IReadOnlyCollection<string> concerns)
+    // ─────────────────────────────────────────────────────────────────────────
+    // WARNINGS
+    // ─────────────────────────────────────────────────────────────────────────
+
+    private static List<string> GenerateWarnings(SkinAnalysisResult result, string skinType)
     {
-        var ingredients = new List<string> { "Niacinamide", "Hyaluronic Acid", "Ceramide", "Panthenol" };
-        if (concerns.Any(x => x.Contains("mun", StringComparison.OrdinalIgnoreCase) || x.Contains("acne", StringComparison.OrdinalIgnoreCase)))
+        var warnings = new List<string>();
+
+        if (result.AcneLevel is "mild" or "moderate")
         {
-            ingredients.Add("Salicylic Acid");
+            warnings.Add("Không tự nặn mụn viêm — có thể đẩy vi khuẩn sâu hơn và gây thâm, sẹo");
+            warnings.Add("Không đổi sản phẩm liên tục — cần ít nhất 4–6 tuần mới thấy hiệu quả rõ");
         }
-        if (concerns.Any(x => x.Contains("tham", StringComparison.OrdinalIgnoreCase) || x.Contains("nam", StringComparison.OrdinalIgnoreCase) || x.Contains("spot", StringComparison.OrdinalIgnoreCase)))
+        else if (result.AcneLevel == "severe")
         {
-            ingredients.Add("Vitamin C");
-            ingredients.Add("Tranexamic Acid");
-        }
-        if (skinType.Contains("dry", StringComparison.OrdinalIgnoreCase) || skinType.Contains("kho", StringComparison.OrdinalIgnoreCase))
-        {
-            ingredients.Add("Squalane");
+            warnings.Add("Không tự nặn hoặc can thiệp vào mụn viêm nặng — nguy cơ sẹo rất cao");
+            warnings.Add("Không tự dùng retinoid hoặc acid nồng độ cao khi chưa có chỉ định của bác sĩ");
         }
 
-        return string.Join(", ", ingredients.Distinct());
+        switch (skinType)
+        {
+            case "oily":
+                warnings.Add("Không rửa mặt quá 2–3 lần/ngày — rửa nhiều gây kích ứng và da tiết dầu ngược");
+                warnings.Add("Tránh sản phẩm chứa cồn nồng độ cao (alcohol denat.) — làm khô da và kích bùng dầu");
+                break;
+
+            case "dry":
+                warnings.Add("Tránh sản phẩm chứa fragrance, cồn và AHA nồng độ cao — phá vỡ barrier da khô");
+                warnings.Add("Không dùng nước nóng khi rửa mặt — làm mất dầu tự nhiên và tăng độ khô");
+                break;
+
+            case "combination":
+                warnings.Add("Không dùng sản phẩm kiểm soát dầu mạnh lên vùng má — gây khô và bong tróc");
+                break;
+
+            case "sensitive":
+                warnings.Add("Tránh layer nhiều active (AHA, BHA, Retinol, Vitamin C) cùng một buổi");
+                warnings.Add("Không dùng sản phẩm có fragrance hoặc essential oil — hai thành phần kích ứng phổ biến nhất");
+                break;
+
+            case "normal":
+                // Da thường khỏe mạnh, không cần cảnh báo đặc thù theo loại da
+                break;
+        }
+
+        if (result.DarkSpots)
+            warnings.Add("Không bỏ SPF khi đang dùng Vitamin C hoặc AHA — ánh nắng làm thâm tối và lâu mờ hơn");
+
+        if (result.Redness && skinType == "sensitive")
+            warnings.Add("Đỏ da không cải thiện sau 2–3 tuần nên được kiểm tra bởi bác sĩ da liễu");
+
+        if (result.EnlargedPores && result.AcneLevel != "none")
+            warnings.Add("Không dùng BHA và Retinol cùng một buổi tối — gây kích ứng và làm mỏng barrier");
+
+        return warnings;
     }
 
-    private static string BuildAvoidIngredients(string skinType, IReadOnlyCollection<string> concerns)
-    {
-        var avoid = new List<string> { "Harsh physical scrubs", "Over-layering acids", "Unprotected daytime retinoids" };
-        if (skinType.Contains("sensitive", StringComparison.OrdinalIgnoreCase) || skinType.Contains("nhay", StringComparison.OrdinalIgnoreCase))
-        {
-            avoid.Add("High fragrance formulas");
-            avoid.Add("Alcohol denat-heavy toners");
-        }
-        if (concerns.Any(x => x.Contains("kho", StringComparison.OrdinalIgnoreCase)))
-        {
-            avoid.Add("Foaming cleansers that leave skin tight");
-        }
+    // ─────────────────────────────────────────────────────────────────────────
+    // IMAGE UTILS
+    // ─────────────────────────────────────────────────────────────────────────
 
-        return string.Join(", ", avoid.Distinct());
+    private string? ValidateImage(byte[] imageBytes)
+    {
+        if (imageBytes.Length > 5 * 1024 * 1024)
+            return "Ảnh quá lớn. Vui lòng chọn ảnh nhỏ hơn 5MB.";
+
+        if (!IsJpegOrPng(imageBytes))
+            return "Định dạng ảnh không hợp lệ. Chỉ hỗ trợ JPEG và PNG.";
+
+        return null;
     }
 
-    private static string BuildProductSuggestions(string plan, string skinType, IReadOnlyCollection<string> concerns)
+    private static bool IsJpegOrPng(byte[] bytes)
     {
-        var suggestions = new List<string> { "Belumi Barrier Cream", "Belumi Daily SPF 50" };
-        suggestions.Add(skinType.Contains("oily", StringComparison.OrdinalIgnoreCase) || skinType.Contains("dau", StringComparison.OrdinalIgnoreCase)
-            ? "Belumi Clarifying Gel Cleanser"
-            : "Belumi Gentle Milk Cleanser");
-        if (concerns.Any(x => x.Contains("tham", StringComparison.OrdinalIgnoreCase) || x.Contains("nam", StringComparison.OrdinalIgnoreCase)))
-        {
-            suggestions.Add("Belumi Glow Serum");
-        }
-        if (plan == "pro")
-        {
-            suggestions.Add("Belumi AI Custom Routine Set");
-        }
+        if (bytes.Length < 4) return false;
 
-        return string.Join(", ", suggestions.Distinct());
+        bool isJpeg = bytes[0] == 0xFF && bytes[1] == 0xD8 && bytes[2] == 0xFF;
+        bool isPng  = bytes[0] == 0x89 && bytes[1] == 0x50 && bytes[2] == 0x4E && bytes[3] == 0x47;
+
+        return isJpeg || isPng;
     }
 
-    private sealed record GeminiImageData(string MimeType, string Base64Data);
+    private static byte[] PreprocessImage(byte[] imageBytes)
+    {
+        using var input = new MemoryStream(imageBytes);
+        using var image = Image.Load(input);
+
+        image.Mutate(ctx => ctx
+            .Resize(new ResizeOptions
+            {
+                Size     = new Size(512, 512),
+                Mode     = ResizeMode.Pad,
+                Position = AnchorPositionMode.Center
+            })
+            .Brightness(1.05f)
+            .Contrast(1.05f)
+        );
+
+        using var output = new MemoryStream();
+        image.Save(output, new JpegEncoder { Quality = 85 });
+        return output.ToArray();
+    }
+
+    private static string ComputeHash(byte[] imageBytes)
+    {
+        var hash = SHA256.HashData(imageBytes);
+        return Convert.ToHexString(hash).ToLower();
+    }
+
+    // ─────────────────────────────────────────────────────────────────────────
+    // OPENAI CHAT CLIENT
+    // ─────────────────────────────────────────────────────────────────────────
+
+    private async Task<SkinAnalysisResult?> CallOpenAiAsync(byte[] imageBytes, string skinType)
+    {
+        var apiKey = Environment.GetEnvironmentVariable("OPENAI_API_KEY") ?? _configuration["OpenAI:ApiKey"];
+        if (string.IsNullOrWhiteSpace(apiKey))
+        {
+            throw new InvalidOperationException("OpenAI API Key is not configured.");
+        }
+
+        var model = _configuration["OpenAI:Model"] ?? "gpt-4o-mini";
+        
+        ChatClient client = new(model, apiKey);
+        
+        var prompt = BuildPrompt(skinType);
+        var messages = new ChatMessage[]
+        {
+            new UserChatMessage(
+                ChatMessageContentPart.CreateTextPart(prompt),
+                ChatMessageContentPart.CreateImagePart(BinaryData.FromBytes(imageBytes), "image/jpeg")
+            )
+        };
+
+        var options = new ChatCompletionOptions
+        {
+            ResponseFormat = ChatResponseFormat.CreateJsonSchemaFormat(
+                "skin_analysis",
+                BinaryData.FromString(GetJsonSchemaForSkinAnalysisResult()),
+                "Face skin analysis result schema",
+                true
+            ),
+            Temperature = 0.1f
+        };
+
+        ChatCompletion completion = await client.CompleteChatAsync(messages, options);
+        
+        if (completion.Content == null || completion.Content.Count == 0)
+        {
+            _logger.LogWarning("OpenAI returned empty response");
+            return null;
+        }
+
+        var resultText = completion.Content[0].Text;
+        if (string.IsNullOrWhiteSpace(resultText))
+        {
+            _logger.LogWarning("OpenAI returned empty text in response");
+            return null;
+        }
+
+        return JsonSerializer.Deserialize<SkinAnalysisResult>(resultText);
+    }
+
+    private static string GetJsonSchemaForSkinAnalysisResult() => """
+    {
+      "type": "object",
+      "properties": {
+        "acne_level": { "type": "string", "enum": ["none", "mild", "moderate", "severe"] },
+        "dark_spots": { "type": "boolean" },
+        "enlarged_pores": { "type": "boolean" },
+        "redness": { "type": "boolean" },
+        "uneven_tone": { "type": "boolean" },
+        "top_concerns": {
+          "type": "array",
+          "items": { "type": "string", "enum": ["acne", "dark_spots", "pores", "dryness", "oiliness", "dullness", "redness"] }
+        },
+        "overall_score": { "type": "integer" },
+        "confidence": { "type": "number" }
+      },
+      "required": ["acne_level", "dark_spots", "enlarged_pores", "redness", "uneven_tone", "top_concerns", "overall_score", "confidence"],
+      "additionalProperties": false
+    }
+    """;
+
+    private static string BuildPrompt(string skinType) => $"""
+        You are a professional skincare analysis AI.
+
+        The user has already been identified as having {skinType} skin.
+        Do NOT re-classify skin type — it is already known.
+
+        Your task: Analyze the facial image and identify VISIBLE skin concerns only.
+
+        Look for:
+        - Acne or pimples (none/mild/moderate/severe)
+        - Dark spots or hyperpigmentation (yes/no)
+        - Enlarged or visible pores (yes/no)
+        - Redness or inflammation (yes/no)
+        - Uneven skin tone or dullness (yes/no)
+
+        overall_score: Rate overall skin health from 0 (severe issues) to 100 (perfect skin).
+        confidence: How confident you are in this analysis based on image quality (0.0 to 1.0).
+
+        Respond ONLY with valid JSON matching the schema. No explanations, no markdown.
+        """;
 }

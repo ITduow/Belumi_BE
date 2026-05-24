@@ -34,21 +34,48 @@ public sealed class FirebaseRoleService(IConfiguration configuration, FirebaseAd
 
     private static FirestoreDb CreateFirestoreDb(IConfiguration configuration)
     {
-        var credentialPath = configuration["Firebase:ServiceAccountPath"]
-            ?? Environment.GetEnvironmentVariable("GOOGLE_APPLICATION_CREDENTIALS");
+        GoogleCredential credential;
+        string? projectId = null;
 
-        if (string.IsNullOrWhiteSpace(credentialPath))
+        var firebaseCredentialsJson = configuration["FIREBASE_CREDENTIALS"];
+        if (!string.IsNullOrWhiteSpace(firebaseCredentialsJson))
         {
-            throw new InvalidOperationException(
-                "Firebase service account is not configured. Set GOOGLE_APPLICATION_CREDENTIALS or Firebase:ServiceAccountPath.");
+            var cleanedJson = firebaseCredentialsJson.Trim('\'', '"');
+            credential = GoogleCredential.FromJson(cleanedJson);
+            
+            using var document = JsonDocument.Parse(cleanedJson);
+            if (document.RootElement.TryGetProperty("project_id", out var projIdElement))
+            {
+                projectId = projIdElement.GetString();
+            }
+        }
+        else
+        {
+            var credentialPath = configuration["Firebase:ServiceAccountPath"]
+                ?? Environment.GetEnvironmentVariable("GOOGLE_APPLICATION_CREDENTIALS");
+
+            if (string.IsNullOrWhiteSpace(credentialPath))
+            {
+                throw new InvalidOperationException(
+                    "Firebase service account is not configured. Set GOOGLE_APPLICATION_CREDENTIALS, FIREBASE_CREDENTIALS or Firebase:ServiceAccountPath.");
+            }
+
+            if (!File.Exists(credentialPath))
+            {
+                throw new InvalidOperationException($"Firebase service account file was not found: {credentialPath}");
+            }
+
+            credential = GoogleCredential.FromFile(credentialPath);
+            
+            using var stream = File.OpenRead(credentialPath);
+            using var document = JsonDocument.Parse(stream);
+            if (document.RootElement.TryGetProperty("project_id", out var projIdElement))
+            {
+                projectId = projIdElement.GetString();
+            }
         }
 
-        if (!File.Exists(credentialPath))
-        {
-            throw new InvalidOperationException($"Firebase service account file was not found: {credentialPath}");
-        }
-
-        var projectId = configuration["Firebase:ProjectId"] ?? ReadProjectId(credentialPath);
+        projectId = configuration["Firebase:ProjectId"] ?? projectId;
         if (string.IsNullOrWhiteSpace(projectId))
         {
             throw new InvalidOperationException("Firebase project_id was not found in service account config.");
@@ -57,7 +84,7 @@ public sealed class FirebaseRoleService(IConfiguration configuration, FirebaseAd
         return new FirestoreDbBuilder
         {
             ProjectId = projectId,
-            Credential = GoogleCredential.FromFile(credentialPath)
+            Credential = credential
         }.Build();
     }
 
