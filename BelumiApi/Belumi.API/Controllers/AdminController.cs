@@ -66,9 +66,27 @@ public sealed class AdminController(BelumiDbContext db) : ControllerBase
             return BadRequest();
         }
 
-        db.Entry(product).State = EntityState.Modified;
+        var existing = await db.Products.FindAsync([id], cancellationToken);
+        if (existing is null)
+        {
+            return NotFound();
+        }
+
+        existing.Name = product.Name;
+        existing.Brand = product.Brand;
+        existing.Description = product.Description;
+        existing.Ingredients = product.Ingredients;
+        existing.Benefits = product.Benefits;
+        existing.Price = product.Price;
+        existing.ThumbnailUrl = product.ThumbnailUrl ?? existing.ThumbnailUrl;
+        existing.ImageUrl = product.ImageUrl ?? existing.ImageUrl;
+        existing.SuitableSkinTypes = product.SuitableSkinTypes ?? existing.SuitableSkinTypes;
+        existing.CategoryId = product.CategoryId;
+        existing.IsActive = product.IsActive;
+        existing.UpdatedAt = DateTime.UtcNow;
+
         await db.SaveChangesAsync(cancellationToken);
-        return Ok(product);
+        return Ok(existing);
     }
 
     [HttpDelete("products/{id:guid}")]
