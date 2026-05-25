@@ -1,9 +1,9 @@
-using Belumi.Core.Entities;
-using Belumi.Core.DTOs;
+using Belumi.Core.DTOs.Gemini;
+using System.Threading.Tasks;
 
 namespace Belumi.Core.Interfaces;
 
 public interface ISkinAnalysisService
 {
-    Task<SkinAnalysis> AnalyzeAsync(Guid userId, SkinAnalysisRequest request, CancellationToken cancellationToken);
+    Task<AnalysisResponse> AnalyzeAsync(byte[] imageBytes, string skinType);
 }

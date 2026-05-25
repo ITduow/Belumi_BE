@@ -1,11 +1,16 @@
 using Belumi.API.Common;
+using Belumi.API.Endpoints;
 using Belumi.Application.Validators;
 using Belumi.Infrastructure;
 using Belumi.Infrastructure.Data;
 using FluentValidation;
 using Microsoft.AspNetCore.Authentication;
 
+// Load .env từ root hoặc parent directories giống belumi
+DotNetEnv.Env.TraversePath().Load();
+
 var builder = WebApplication.CreateBuilder(args);
+builder.Configuration.AddEnvironmentVariables();
 
 builder.Services.AddControllers(options =>
 {
@@ -47,6 +52,7 @@ app.UseCors("BelumiApp");
 app.UseAuthentication();
 app.UseAuthorization();
 app.MapControllers();
+app.MapSkinEndpoints();
 
 using (var scope = app.Services.CreateScope())
 {

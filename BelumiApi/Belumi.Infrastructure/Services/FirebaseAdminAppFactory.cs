@@ -22,23 +22,36 @@ public sealed class FirebaseAdminAppFactory(IConfiguration configuration)
                 return FirebaseApp.DefaultInstance;
             }
 
-            var credentialPath = configuration["Firebase:ServiceAccountPath"]
-                ?? Environment.GetEnvironmentVariable("GOOGLE_APPLICATION_CREDENTIALS");
+            GoogleCredential credential;
+            var firebaseCredentialsJson = configuration["FIREBASE_CREDENTIALS"];
 
-            if (string.IsNullOrWhiteSpace(credentialPath))
+            if (!string.IsNullOrWhiteSpace(firebaseCredentialsJson))
             {
-                throw new InvalidOperationException(
-                    "Firebase service account is not configured. Set GOOGLE_APPLICATION_CREDENTIALS or Firebase:ServiceAccountPath.");
+                var cleanedJson = firebaseCredentialsJson.Trim('\'', '"');
+                credential = GoogleCredential.FromJson(cleanedJson);
             }
-
-            if (!File.Exists(credentialPath))
+            else
             {
-                throw new InvalidOperationException($"Firebase service account file was not found: {credentialPath}");
+                var credentialPath = configuration["Firebase:ServiceAccountPath"]
+                    ?? Environment.GetEnvironmentVariable("GOOGLE_APPLICATION_CREDENTIALS");
+
+                if (string.IsNullOrWhiteSpace(credentialPath))
+                {
+                    throw new InvalidOperationException(
+                        "Firebase service account is not configured. Set GOOGLE_APPLICATION_CREDENTIALS, FIREBASE_CREDENTIALS or Firebase:ServiceAccountPath.");
+                }
+
+                if (!File.Exists(credentialPath))
+                {
+                    throw new InvalidOperationException($"Firebase service account file was not found: {credentialPath}");
+                }
+
+                credential = GoogleCredential.FromFile(credentialPath);
             }
 
             return FirebaseApp.Create(new AppOptions
             {
-                Credential = GoogleCredential.FromFile(credentialPath)
+                Credential = credential
             });
         }
     }

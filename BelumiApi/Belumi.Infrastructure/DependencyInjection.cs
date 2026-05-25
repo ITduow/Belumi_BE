@@ -18,12 +18,9 @@ public static class DependencyInjection
         services.AddDbContext<BelumiDbContext>(options => options.UseNpgsql(connectionString));
         services.AddSingleton<FirebaseAdminAppFactory>();
         services.AddSingleton<FirebaseRoleService>();
+        services.AddMemoryCache();
         services.AddScoped<IAuthService, AuthService>();
-        services.AddScoped<ISkinAnalysisService>(provider =>
-            new SkinAnalysisService(
-                provider.GetRequiredService<BelumiDbContext>(),
-                new HttpClient(),
-                configuration));
+        services.AddScoped<ISkinAnalysisService, SkinAnalysisService>();
         services.AddScoped<ICatalogService, CatalogService>();
         services.AddScoped<IContentService, ContentService>();
         services.AddScoped<IAiBeautyService, AiBeautyService>();
