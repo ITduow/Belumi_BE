@@ -46,6 +46,24 @@ public class SkinAnalysisResult
 
     [JsonPropertyName("warnings")]
     public List<string> Warnings { get; set; } = new();
+
+    [JsonPropertyName("recommended_ingredients")]
+    public List<IngredientRecommendation> RecommendedIngredients { get; set; } = new();
+
+    [JsonPropertyName("avoid_or_professional_only")]
+    public List<IngredientRecommendation> AvoidOrProfessionalOnly { get; set; } = new();
+}
+
+public class IngredientRecommendation
+{
+    [JsonPropertyName("name")]
+    public string Name { get; set; } = string.Empty;
+
+    [JsonPropertyName("reason")]
+    public string Reason { get; set; } = string.Empty;
+
+    [JsonPropertyName("source_ids")]
+    public List<string> SourceIds { get; set; } = new();
 }
 
 public class AnalysisResponse
