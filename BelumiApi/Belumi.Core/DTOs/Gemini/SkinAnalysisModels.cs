@@ -5,6 +5,12 @@ namespace Belumi.Core.DTOs.Gemini;
 
 public class SkinAnalysisResult
 {
+    [JsonPropertyName("face_detected")]
+    public bool FaceDetected { get; set; }
+
+    [JsonPropertyName("image_subject")]
+    public string ImageSubject { get; set; } = "unknown";
+
     [JsonPropertyName("acne_level")]
     public string AcneLevel { get; set; } = string.Empty;
 

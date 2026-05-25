@@ -88,6 +88,17 @@ public class SkinAnalysisService : ISkinAnalysisService
             return new AnalysisResponse { Status = "error", Message = "AI không trả về kết quả hợp lệ" };
         }
 
+        if (!result.FaceDetected || result.ImageSubject != "face")
+        {
+            _logger.LogWarning("Rejected non-face image. faceDetected={FaceDetected}, subject={ImageSubject}",
+                result.FaceDetected, result.ImageSubject);
+            return new AnalysisResponse
+            {
+                Status  = "retake_required",
+                Message = "Ảnh không chứa khuôn mặt rõ để phân tích da. Vui lòng chọn ảnh selfie hoặc ảnh khuôn mặt rõ hơn."
+            };
+        }
+
         _logger.LogInformation("OpenAI confidence={Confidence}, score={Score}, acne={Acne}",
             result.Confidence, result.OverallScore, result.AcneLevel);
 
@@ -466,6 +477,8 @@ public class SkinAnalysisService : ISkinAnalysisService
     {
       "type": "object",
       "properties": {
+        "face_detected": { "type": "boolean" },
+        "image_subject": { "type": "string", "enum": ["face", "animal", "object", "landscape", "unknown"] },
         "acne_level": { "type": "string", "enum": ["none", "mild", "moderate", "severe"] },
         "dark_spots": { "type": "boolean" },
         "enlarged_pores": { "type": "boolean" },
@@ -478,7 +491,7 @@ public class SkinAnalysisService : ISkinAnalysisService
         "overall_score": { "type": "integer" },
         "confidence": { "type": "number" }
       },
-      "required": ["acne_level", "dark_spots", "enlarged_pores", "redness", "uneven_tone", "top_concerns", "overall_score", "confidence"],
+      "required": ["face_detected", "image_subject", "acne_level", "dark_spots", "enlarged_pores", "redness", "uneven_tone", "top_concerns", "overall_score", "confidence"],
       "additionalProperties": false
     }
     """;
@@ -489,7 +502,11 @@ public class SkinAnalysisService : ISkinAnalysisService
         The user has already been identified as having {skinType} skin.
         Do NOT re-classify skin type — it is already known.
 
-        Your task: Analyze the facial image and identify VISIBLE skin concerns only.
+        First determine whether the image contains a visible human face suitable for facial skin analysis.
+        If the image does not contain a human face, set face_detected=false and image_subject to the best matching category.
+        If the image contains an animal, object, landscape, product photo, or other non-face subject, do not infer skin concerns.
+
+        Your task: Analyze the facial image and identify VISIBLE skin concerns only when face_detected=true.
 
         Look for:
         - Acne or pimples (none/mild/moderate/severe)
