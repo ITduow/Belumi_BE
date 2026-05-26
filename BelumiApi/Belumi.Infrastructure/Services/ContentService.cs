@@ -9,10 +9,13 @@ namespace Belumi.Infrastructure.Services;
 public sealed class ContentService(BelumiDbContext db) : IContentService
 {
     public async Task<IReadOnlyCollection<BlogPost>> GetBlogsAsync(CancellationToken cancellationToken) =>
-        await db.BlogPosts.AsNoTracking().Where(x => x.IsActive).OrderByDescending(x => x.PublishedAt).ToListAsync(cancellationToken);
+        await db.BlogPosts.AsNoTracking()
+            .Where(x => x.IsActive && x.Status == NewsStatus.Published)
+            .OrderByDescending(x => x.PublishedAt)
+            .ToListAsync(cancellationToken);
 
     public Task<BlogPost?> GetBlogAsync(Guid id, CancellationToken cancellationToken) =>
-        db.BlogPosts.AsNoTracking().FirstOrDefaultAsync(x => x.Id == id && x.IsActive, cancellationToken);
+        db.BlogPosts.AsNoTracking().FirstOrDefaultAsync(x => x.Id == id && x.IsActive && x.Status == NewsStatus.Published, cancellationToken);
 
     public async Task<IReadOnlyCollection<Banner>> GetBannersAsync(CancellationToken cancellationToken) =>
         await db.Banners.AsNoTracking().Where(x => x.IsActive).OrderBy(x => x.SortOrder).ToListAsync(cancellationToken);
