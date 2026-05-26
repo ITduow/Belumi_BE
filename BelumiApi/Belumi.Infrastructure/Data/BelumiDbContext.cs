@@ -10,6 +10,9 @@ public sealed class BelumiDbContext(DbContextOptions<BelumiDbContext> options) :
     public DbSet<ProductImage> ProductImages => Set<ProductImage>();
     public DbSet<Service> Services => Set<Service>();
     public DbSet<BlogPost> BlogPosts => Set<BlogPost>();
+    public DbSet<NewsCategory> NewsCategories => Set<NewsCategory>();
+    public DbSet<NewsLike> NewsLikes => Set<NewsLike>();
+    public DbSet<NewsSave> NewsSaves => Set<NewsSave>();
     public DbSet<Banner> Banners => Set<Banner>();
     public DbSet<ContactRequest> ContactRequests => Set<ContactRequest>();
     public DbSet<SkinAnalysis> SkinAnalyses => Set<SkinAnalysis>();
@@ -33,9 +36,24 @@ public sealed class BelumiDbContext(DbContextOptions<BelumiDbContext> options) :
         modelBuilder.Entity<Service>().Property(service => service.Price).HasPrecision(18, 2);
         modelBuilder.Entity<User>().Property(user => user.Role).HasConversion<string>();
         modelBuilder.Entity<ContactRequest>().Property(contact => contact.Status).HasConversion<string>();
+        modelBuilder.Entity<BlogPost>().Property(post => post.Status).HasConversion<string>();
         modelBuilder.Entity<WishlistItem>().HasIndex(item => new { item.UserId, item.ProductId }).IsUnique();
         modelBuilder.Entity<SubscriptionPlan>().HasIndex(plan => plan.Name).IsUnique();
         modelBuilder.Entity<BlogPost>().HasIndex(post => post.Slug).IsUnique();
+        modelBuilder.Entity<BlogPost>().HasIndex(post => new { post.Category, post.Status, post.PublishedAt });
+        modelBuilder.Entity<NewsCategory>().HasIndex(category => category.Slug).IsUnique();
+        modelBuilder.Entity<NewsLike>().HasIndex(like => new { like.UserId, like.NewsId }).IsUnique();
+        modelBuilder.Entity<NewsSave>().HasIndex(save => new { save.UserId, save.NewsId }).IsUnique();
+        modelBuilder.Entity<NewsLike>()
+            .HasOne(like => like.News)
+            .WithMany()
+            .HasForeignKey(like => like.NewsId)
+            .OnDelete(DeleteBehavior.Cascade);
+        modelBuilder.Entity<NewsSave>()
+            .HasOne(save => save.News)
+            .WithMany()
+            .HasForeignKey(save => save.NewsId)
+            .OnDelete(DeleteBehavior.Cascade);
 
         modelBuilder.Entity<BeautyProfile>()
             .HasOne(profile => profile.User)

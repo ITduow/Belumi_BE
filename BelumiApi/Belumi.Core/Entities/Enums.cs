@@ -12,3 +12,10 @@ public enum ContactStatus
     InProgress = 1,
     Resolved = 2
 }
+
+public enum NewsStatus
+{
+    Draft = 0,
+    Published = 1,
+    Hidden = 2
+}
