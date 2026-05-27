@@ -18,6 +18,7 @@ COPY BelumiApi/Belumi.API/Belumi.API.csproj BelumiApi/Belumi.API/
 COPY BelumiApi/Belumi.Application/Belumi.Application.csproj BelumiApi/Belumi.Application/
 COPY BelumiApi/Belumi.Core/Belumi.Core.csproj BelumiApi/Belumi.Core/
 COPY BelumiApi/Belumi.Infrastructure/Belumi.Infrastructure.csproj BelumiApi/Belumi.Infrastructure/
+COPY BelumiApi/Belumi.Tests/Belumi.Tests.csproj BelumiApi/Belumi.Tests/
 
 # Restore NuGet packages
 RUN dotnet restore
