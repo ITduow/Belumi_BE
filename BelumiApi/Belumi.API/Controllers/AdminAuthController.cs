@@ -32,7 +32,7 @@ public sealed class AdminAuthController(BelumiDbContext db) : ControllerBase
             totalMakeupConsultations = await db.MakeupConsultations.CountAsync(cancellationToken),
             totalSubscriptions = await db.UserSubscriptions.CountAsync(cancellationToken),
             totalPayments = await db.Payments.CountAsync(cancellationToken),
-            totalNews = await db.BlogPosts.CountAsync(cancellationToken),
+            totalNews = await db.NewsArticles.CountAsync(cancellationToken),
             aiUsageThisMonth = await db.AiUsageLogs.CountAsync(x => x.CreatedAt >= startOfMonth, cancellationToken)
         });
     }

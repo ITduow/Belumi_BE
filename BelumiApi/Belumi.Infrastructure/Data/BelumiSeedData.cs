@@ -82,8 +82,8 @@ public static class BelumiSeedData
                 Category = spa
             });
 
-        db.BlogPosts.AddRange(
-            new BlogPost
+            db.NewsArticles.AddRange(
+                new NewsArticle
             {
             Title = "How to Build a Gentle Morning Routine",
                 Slug = "gentle-morning-routine",
@@ -98,7 +98,7 @@ public static class BelumiSeedData
                 LikeCount = 18,
                 PublishedAt = DateTime.UtcNow.AddDays(-3)
             },
-            new BlogPost
+                new NewsArticle
             {
                 Title = "Niacinamide: Small Ingredient, Big Range",
                 Slug = "niacinamide-guide",
@@ -113,7 +113,7 @@ public static class BelumiSeedData
                 LikeCount = 14,
                 PublishedAt = DateTime.UtcNow.AddDays(-1)
             },
-            new BlogPost
+                new NewsArticle
             {
                 Title = "Makeup nền mỏng cho ngày nắng",
                 Slug = "makeup-nen-mong-ngay-nang",
@@ -128,7 +128,7 @@ public static class BelumiSeedData
                 LikeCount = 9,
                 PublishedAt = DateTime.UtcNow.AddDays(-2)
             },
-            new BlogPost
+                new NewsArticle
             {
                 Title = "Đọc bảng thành phần trong 3 phút",
                 Slug = "doc-bang-thanh-phan-3-phut",
@@ -249,7 +249,7 @@ public static class BelumiSeedData
     {
         var seedPosts = new[]
         {
-            new BlogPost
+                new NewsArticle
             {
                 Title = "Xu hướng skin cycling cho người mới",
                 Slug = "xu-huong-skin-cycling-cho-nguoi-moi",
@@ -263,7 +263,7 @@ public static class BelumiSeedData
                 LikeCount = 12,
                 PublishedAt = DateTime.UtcNow.AddDays(-6)
             },
-            new BlogPost
+                new NewsArticle
             {
                 Title = "Chọn serum cho da dầu mụn",
                 Slug = "chon-serum-cho-da-dau-mun",
@@ -277,7 +277,7 @@ public static class BelumiSeedData
                 LikeCount = 25,
                 PublishedAt = DateTime.UtcNow.AddDays(-4)
             },
-            new BlogPost
+                new NewsArticle
             {
                 Title = "Trang điểm công sở nhanh trong 10 phút",
                 Slug = "trang-diem-cong-so-10-phut",
@@ -295,9 +295,9 @@ public static class BelumiSeedData
 
         foreach (var post in seedPosts)
         {
-            if (!await db.BlogPosts.AnyAsync(x => x.Slug == post.Slug))
+            if (!await db.NewsArticles.AnyAsync(x => x.Slug == post.Slug))
             {
-                db.BlogPosts.Add(post);
+                db.NewsArticles.Add(post);
             }
         }
     }
