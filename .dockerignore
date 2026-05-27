@@ -1,0 +1,46 @@
+# =============================================================
+# BELUMI BACKEND - .dockerignore
+# =============================================================
+# Prevents unnecessary files from being copied into Docker build context.
+# Without this, Docker copies bin/, obj/, .git/ etc → slow builds & large images.
+# =============================================================
+
+# Git
+.git
+.gitignore
+
+# Build outputs (will be rebuilt inside Docker)
+**/bin/
+**/obj/
+
+# Visual Studio / Rider IDE
+*.user
+*.suo
+.vs/
+.idea/
+*.DotSettings.user
+
+# Test results
+**/TestResults/
+
+# Environment files (secrets - must NEVER go into Docker image)
+.env
+*.env
+.env.*
+
+# Docker itself
+Dockerfile
+.dockerignore
+docker-compose.yml
+docker-compose*.yml
+
+# Documentation and scripts (not needed in production image)
+*.md
+*.py
+serve-belumi-web.ps1
+tmp_inspect_encoding.py
+RUN_LOCAL.md
+
+# Local user secrets
+**/secrets.json
+**/appsettings.Development.json
