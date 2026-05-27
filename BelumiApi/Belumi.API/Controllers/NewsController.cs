@@ -18,7 +18,7 @@ public sealed class NewsController(BelumiDbContext db) : ControllerBase
         [FromQuery] string? sort,
         CancellationToken cancellationToken)
     {
-        var query = db.BlogPosts.AsNoTracking()
+        var query = db.NewsArticles.AsNoTracking()
             .Where(x => x.IsActive && x.Status == NewsStatus.Published);
 
         if (!string.IsNullOrWhiteSpace(category))
@@ -49,7 +49,7 @@ public sealed class NewsController(BelumiDbContext db) : ControllerBase
     [HttpGet("{slug}")]
     public async Task<IActionResult> GetBySlug(string slug, CancellationToken cancellationToken)
     {
-        var post = await db.BlogPosts
+        var post = await db.NewsArticles
             .FirstOrDefaultAsync(x => x.Slug == slug && x.IsActive && x.Status == NewsStatus.Published, cancellationToken);
         if (post is null)
         {
@@ -73,7 +73,7 @@ public sealed class NewsController(BelumiDbContext db) : ControllerBase
             return Ok(managedCategories);
         }
 
-        var categories = await db.BlogPosts.AsNoTracking()
+        var categories = await db.NewsArticles.AsNoTracking()
             .Where(x => x.IsActive && x.Status == NewsStatus.Published)
             .Select(x => x.Category)
             .Where(x => x != "")
@@ -176,7 +176,7 @@ public sealed class NewsController(BelumiDbContext db) : ControllerBase
     [Authorize]
     public async Task<IActionResult> LikeStatus(Guid id, CancellationToken cancellationToken)
     {
-        if (!await db.BlogPosts.AnyAsync(x => x.Id == id && x.IsActive && x.Status == NewsStatus.Published, cancellationToken))
+        if (!await db.NewsArticles.AnyAsync(x => x.Id == id && x.IsActive && x.Status == NewsStatus.Published, cancellationToken))
         {
             return NotFound();
         }
@@ -191,7 +191,7 @@ public sealed class NewsController(BelumiDbContext db) : ControllerBase
     [Authorize]
     public async Task<IActionResult> ToggleSave(Guid id, CancellationToken cancellationToken)
     {
-        if (!await db.BlogPosts.AnyAsync(x => x.Id == id && x.IsActive && x.Status == NewsStatus.Published, cancellationToken))
+        if (!await db.NewsArticles.AnyAsync(x => x.Id == id && x.IsActive && x.Status == NewsStatus.Published, cancellationToken))
         {
             return NotFound();
         }
@@ -216,7 +216,7 @@ public sealed class NewsController(BelumiDbContext db) : ControllerBase
     [Authorize]
     public async Task<IActionResult> Save(Guid id, CancellationToken cancellationToken)
     {
-        if (!await db.BlogPosts.AnyAsync(x => x.Id == id && x.IsActive && x.Status == NewsStatus.Published, cancellationToken))
+        if (!await db.NewsArticles.AnyAsync(x => x.Id == id && x.IsActive && x.Status == NewsStatus.Published, cancellationToken))
         {
             return NotFound();
         }
@@ -235,7 +235,7 @@ public sealed class NewsController(BelumiDbContext db) : ControllerBase
     [Authorize]
     public async Task<IActionResult> Unsave(Guid id, CancellationToken cancellationToken)
     {
-        if (!await db.BlogPosts.AnyAsync(x => x.Id == id && x.IsActive && x.Status == NewsStatus.Published, cancellationToken))
+        if (!await db.NewsArticles.AnyAsync(x => x.Id == id && x.IsActive && x.Status == NewsStatus.Published, cancellationToken))
         {
             return NotFound();
         }
@@ -255,7 +255,7 @@ public sealed class NewsController(BelumiDbContext db) : ControllerBase
     [Authorize]
     public async Task<IActionResult> SaveStatus(Guid id, CancellationToken cancellationToken)
     {
-        if (!await db.BlogPosts.AnyAsync(x => x.Id == id && x.IsActive && x.Status == NewsStatus.Published, cancellationToken))
+        if (!await db.NewsArticles.AnyAsync(x => x.Id == id && x.IsActive && x.Status == NewsStatus.Published, cancellationToken))
         {
             return NotFound();
         }
@@ -265,10 +265,10 @@ public sealed class NewsController(BelumiDbContext db) : ControllerBase
         return Ok(new ToggleSaveResponse(id, isSaved));
     }
 
-    private Task<BlogPost?> FindPublishedPostAsync(Guid id, CancellationToken cancellationToken) =>
-        db.BlogPosts.FirstOrDefaultAsync(x => x.Id == id && x.IsActive && x.Status == NewsStatus.Published, cancellationToken);
+    private Task<NewsArticle?> FindPublishedPostAsync(Guid id, CancellationToken cancellationToken) =>
+        db.NewsArticles.FirstOrDefaultAsync(x => x.Id == id && x.IsActive && x.Status == NewsStatus.Published, cancellationToken);
 
-    private async Task<IReadOnlyCollection<NewsResponse>> ToNewsResponsesAsync(IReadOnlyCollection<BlogPost> posts, CancellationToken cancellationToken)
+    private async Task<IReadOnlyCollection<NewsResponse>> ToNewsResponsesAsync(IReadOnlyCollection<NewsArticle> posts, CancellationToken cancellationToken)
     {
         if (posts.Count == 0)
         {

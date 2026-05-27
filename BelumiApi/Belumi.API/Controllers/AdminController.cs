@@ -92,7 +92,7 @@ public sealed class AdminController(BelumiDbContext db) : ControllerBase
         [FromQuery] string? search,
         CancellationToken cancellationToken)
     {
-        var query = db.BlogPosts.AsNoTracking().AsQueryable();
+        var query = db.NewsArticles.AsNoTracking().AsQueryable();
 
         if (Enum.TryParse<NewsStatus>(status, true, out var parsedStatus))
         {
@@ -120,7 +120,7 @@ public sealed class AdminController(BelumiDbContext db) : ControllerBase
     }
 
     [HttpPost("news")]
-    public async Task<IActionResult> CreateNews(BlogPost post, CancellationToken cancellationToken)
+    public async Task<IActionResult> CreateNews(NewsArticle post, CancellationToken cancellationToken)
     {
         post.Title = post.Title.Trim();
         post.Summary = post.Summary.Trim();
@@ -129,15 +129,15 @@ public sealed class AdminController(BelumiDbContext db) : ControllerBase
         post.Author = string.IsNullOrWhiteSpace(post.Author) ? "Belumi Team" : post.Author.Trim();
         post.Slug = string.IsNullOrWhiteSpace(post.Slug) ? Slugify(post.Title) : Slugify(post.Slug);
         post.IsActive = post.Status != NewsStatus.Hidden;
-        db.BlogPosts.Add(post);
+        db.NewsArticles.Add(post);
         await db.SaveChangesAsync(cancellationToken);
         return Created($"/api/news/{post.Slug}", post);
     }
 
     [HttpPut("news/{id:guid}")]
-    public async Task<IActionResult> UpdateNews(Guid id, BlogPost post, CancellationToken cancellationToken)
+    public async Task<IActionResult> UpdateNews(Guid id, NewsArticle post, CancellationToken cancellationToken)
     {
-        var existing = await db.BlogPosts.FindAsync([id], cancellationToken);
+        var existing = await db.NewsArticles.FindAsync([id], cancellationToken);
         if (existing is null)
         {
             return NotFound();
@@ -161,7 +161,7 @@ public sealed class AdminController(BelumiDbContext db) : ControllerBase
     [HttpDelete("news/{id:guid}")]
     public async Task<IActionResult> DeleteNews(Guid id, CancellationToken cancellationToken)
     {
-        var post = await db.BlogPosts.FindAsync([id], cancellationToken);
+        var post = await db.NewsArticles.FindAsync([id], cancellationToken);
         if (post is null)
         {
             return NotFound();
@@ -176,7 +176,7 @@ public sealed class AdminController(BelumiDbContext db) : ControllerBase
     [HttpPatch("news/{id:guid}/status")]
     public async Task<IActionResult> UpdateNewsStatus(Guid id, [FromBody] NewsStatusRequest request, CancellationToken cancellationToken)
     {
-        var post = await db.BlogPosts.FindAsync([id], cancellationToken);
+        var post = await db.NewsArticles.FindAsync([id], cancellationToken);
         if (post is null)
         {
             return NotFound();
@@ -191,7 +191,7 @@ public sealed class AdminController(BelumiDbContext db) : ControllerBase
     [HttpGet("news/statistics")]
     public async Task<IActionResult> NewsStatistics(CancellationToken cancellationToken)
     {
-        var posts = db.BlogPosts.AsNoTracking();
+        var posts = db.NewsArticles.AsNoTracking();
         var topPost = await posts
             .OrderByDescending(x => x.ViewCount)
             .Select(x => new { x.Id, x.Title, x.Slug, x.ViewCount })

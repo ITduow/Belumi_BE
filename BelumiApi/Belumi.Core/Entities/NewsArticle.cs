@@ -1,6 +1,6 @@
 namespace Belumi.Core.Entities;
 
-public sealed class BlogPost : BaseEntity
+public sealed class NewsArticle : BaseEntity
 {
     public string Title { get; set; } = string.Empty;
     public string Slug { get; set; } = string.Empty;
