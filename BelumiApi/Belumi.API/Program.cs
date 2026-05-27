@@ -57,6 +57,7 @@ app.MapSkinEndpoints();
 using (var scope = app.Services.CreateScope())
 {
     var db = scope.ServiceProvider.GetRequiredService<BelumiDbContext>();
+    await db.Database.MigrateAsync(); // Tạo tables nếu chưa có (dùng cho deploy lần đầu)
     await BelumiSeedData.SeedAsync(db);
 }
 
