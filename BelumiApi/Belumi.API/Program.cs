@@ -5,6 +5,7 @@ using Belumi.Infrastructure;
 using Belumi.Infrastructure.Data;
 using FluentValidation;
 using Microsoft.AspNetCore.Authentication;
+using Microsoft.EntityFrameworkCore;
 
 // Load .env từ root hoặc parent directories giống belumi
 DotNetEnv.Env.TraversePath().Load();
