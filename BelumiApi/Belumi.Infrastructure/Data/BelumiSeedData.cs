@@ -14,7 +14,6 @@ public static class BelumiSeedData
 
         if (await db.Categories.AnyAsync())
         {
-            await EnsureNewsAsync(db);
             await db.SaveChangesAsync();
             return;
         }
@@ -81,69 +80,6 @@ public static class BelumiSeedData
                 ImageUrl = "https://images.unsplash.com/photo-1512290923902-8a9f81dc236c",
                 Category = spa
             });
-
-            db.NewsArticles.AddRange(
-                new NewsArticle
-            {
-            Title = "How to Build a Gentle Morning Routine",
-                Slug = "gentle-morning-routine",
-                Summary = "A simple AM routine for healthy, calm skin.",
-                Content = "Cleanse lightly, hydrate well, protect with sunscreen, and keep actives simple.",
-                CoverImageUrl = "https://images.unsplash.com/photo-1522335789203-aabd1fc54bc9",
-                Category = "Skincare",
-                Tags = "routine,skincare,beginner",
-                Author = "Belumi Team",
-                Status = NewsStatus.Published,
-                ViewCount = 128,
-                LikeCount = 18,
-                PublishedAt = DateTime.UtcNow.AddDays(-3)
-            },
-                new NewsArticle
-            {
-                Title = "Niacinamide: Small Ingredient, Big Range",
-                Slug = "niacinamide-guide",
-                Summary = "Why niacinamide is useful for oil, tone, and barrier care.",
-                Content = "Niacinamide can support oil balance, tone, and skin barrier comfort.",
-                CoverImageUrl = "https://images.unsplash.com/photo-1608248543803-ba4f8c70ae0b",
-                Category = "Ingredient",
-                Tags = "niacinamide,ingredient,barrier",
-                Author = "Belumi Lab",
-                Status = NewsStatus.Published,
-                ViewCount = 96,
-                LikeCount = 14,
-                PublishedAt = DateTime.UtcNow.AddDays(-1)
-            },
-                new NewsArticle
-            {
-                Title = "Makeup nền mỏng cho ngày nắng",
-                Slug = "makeup-nen-mong-ngay-nang",
-                Summary = "Cách giữ lớp nền nhẹ, bền màu và không bí da.",
-                Content = "Ưu tiên dưỡng ẩm vừa đủ, kem chống nắng ráo mặt, cushion mỏng và phấn phủ vùng chữ T.",
-                CoverImageUrl = "https://images.unsplash.com/photo-1596462502278-27bfdc403348",
-                Category = "Makeup",
-                Tags = "makeup,base,summer",
-                Author = "Belumi Studio",
-                Status = NewsStatus.Published,
-                ViewCount = 74,
-                LikeCount = 9,
-                PublishedAt = DateTime.UtcNow.AddDays(-2)
-            },
-                new NewsArticle
-            {
-                Title = "Đọc bảng thành phần trong 3 phút",
-                Slug = "doc-bang-thanh-phan-3-phut",
-                Summary = "Những nhóm thành phần nên nhận diện trước khi mua mỹ phẩm.",
-                Content = "Hãy tìm nhóm cấp ẩm, phục hồi, hoạt chất chính và các thành phần dễ kích ứng như hương liệu hoặc cồn khô.",
-                CoverImageUrl = "https://images.unsplash.com/photo-1571781926291-c477ebfd024b",
-                Category = "Ingredient Knowledge",
-                Tags = "ingredient,ocr,safety",
-                Author = "Belumi Lab",
-                Status = NewsStatus.Published,
-                ViewCount = 112,
-                LikeCount = 21,
-                PublishedAt = DateTime.UtcNow.AddDays(-5)
-            });
-
         db.Banners.AddRange(
             new Banner
             {
@@ -243,63 +179,6 @@ public static class BelumiSeedData
                 MakeupConsultationLimit = 200,
                 CanUseAdvancedAnalysis = true
             });
-    }
-
-    private static async Task EnsureNewsAsync(BelumiDbContext db)
-    {
-        var seedPosts = new[]
-        {
-                new NewsArticle
-            {
-                Title = "Xu hướng skin cycling cho người mới",
-                Slug = "xu-huong-skin-cycling-cho-nguoi-moi",
-                Summary = "Luân phiên phục hồi và treatment để da dễ thích nghi hơn.",
-                Content = "Skin cycling thường gồm đêm tẩy da chết, đêm retinoid và các đêm phục hồi. Người mới nên bắt đầu chậm và theo dõi phản ứng da.",
-                CoverImageUrl = "https://images.unsplash.com/photo-1556228720-195a672e8a03",
-                Category = "Beauty Trend",
-                Tags = "trend,skincare,retinoid",
-                Author = "Belumi Team",
-                ViewCount = 88,
-                LikeCount = 12,
-                PublishedAt = DateTime.UtcNow.AddDays(-6)
-            },
-                new NewsArticle
-            {
-                Title = "Chọn serum cho da dầu mụn",
-                Slug = "chon-serum-cho-da-dau-mun",
-                Summary = "Các hoạt chất dịu nhẹ giúp hỗ trợ dầu thừa và lỗ chân lông.",
-                Content = "Niacinamide, salicylic acid nồng độ phù hợp và panthenol là những lựa chọn thường gặp. Tránh dùng quá nhiều active cùng lúc.",
-                CoverImageUrl = "https://images.unsplash.com/photo-1620916566398-39f1143ab7be",
-                Category = "Product Review",
-                Tags = "serum,oily,acne",
-                Author = "Belumi Lab",
-                ViewCount = 134,
-                LikeCount = 25,
-                PublishedAt = DateTime.UtcNow.AddDays(-4)
-            },
-                new NewsArticle
-            {
-                Title = "Trang điểm công sở nhanh trong 10 phút",
-                Slug = "trang-diem-cong-so-10-phut",
-                Summary = "Một layout makeup gọn, sạch và dễ ứng dụng mỗi ngày.",
-                Content = "Dùng nền mỏng, má kem nhẹ, chân mày tự nhiên và son tint MLBB để giữ vẻ tươi tắn mà không mất nhiều thời gian.",
-                CoverImageUrl = "https://images.unsplash.com/photo-1512496015851-a90fb38ba796",
-                Category = "Beauty Tips",
-                Tags = "makeup,office,tips",
-                Author = "Belumi Studio",
-                ViewCount = 67,
-                LikeCount = 8,
-                PublishedAt = DateTime.UtcNow.AddDays(-8)
-            }
-        };
-
-        foreach (var post in seedPosts)
-        {
-            if (!await db.NewsArticles.AnyAsync(x => x.Slug == post.Slug))
-            {
-                db.NewsArticles.Add(post);
-            }
-        }
     }
 
     private static async Task EnsureNewsCategoriesAsync(BelumiDbContext db)
