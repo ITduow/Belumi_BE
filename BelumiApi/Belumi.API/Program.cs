@@ -13,6 +13,14 @@ DotNetEnv.Env.TraversePath().Load();
 var builder = WebApplication.CreateBuilder(args);
 builder.Configuration.AddEnvironmentVariables();
 
+var port = Environment.GetEnvironmentVariable("PORT")
+    ?? (builder.Environment.IsDevelopment() ? null : "5000");
+
+if (!string.IsNullOrWhiteSpace(port))
+{
+    builder.WebHost.UseUrls($"http://*:{port}");
+}
+
 builder.Services.AddControllers(options =>
 {
     options.Filters.Add<ValidationFilter>();
@@ -55,6 +63,7 @@ if (!app.Environment.IsDevelopment())
 app.UseCors("BelumiApp");
 app.UseAuthentication();
 app.UseAuthorization();
+app.MapGet("/", () => "Belumi API is running");
 app.MapControllers();
 app.MapSkinEndpoints();
 

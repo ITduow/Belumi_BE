@@ -1,0 +1,54 @@
+name: Deploy .NET to AWS Elastic Beanstalk
+
+on:
+  push:
+    branches:
+      - main
+      - deploy-aws
+
+env:
+  AWS_REGION: ap-southeast-1
+  EB_APPLICATION_NAME: Belumi
+  EB_ENVIRONMENT_NAME: Belumi-env
+  DOTNET_VERSION: "8.0.x"
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout source
+        uses: actions/checkout@v4
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: ${{ env.DOTNET_VERSION }}
+
+      - name: Restore
+        run: dotnet restore BelumiApi.sln
+
+      - name: Build
+        run: dotnet build BelumiApi.sln --configuration Release --no-restore
+
+      - name: Test
+        run: dotnet test BelumiApi/Belumi.Tests/Belumi.Tests.csproj --configuration Release --no-build
+
+      - name: Publish API
+        run: dotnet publish BelumiApi/Belumi.API/Belumi.API.csproj --configuration Release --output ./publish --no-build
+
+      - name: Zip publish folder
+        run: |
+          cd publish
+          zip -r ../deploy.zip .
+
+      - name: Deploy to Elastic Beanstalk
+        uses: einaregilsson/beanstalk-deploy@v22
+        with:
+          aws_access_key: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws_secret_key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          application_name: ${{ env.EB_APPLICATION_NAME }}
+          environment_name: ${{ env.EB_ENVIRONMENT_NAME }}
+          region: ${{ env.AWS_REGION }}
+          version_label: ${{ github.sha }}
+          deployment_package: deploy.zip
