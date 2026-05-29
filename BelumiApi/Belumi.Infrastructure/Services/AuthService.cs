@@ -10,8 +10,7 @@ namespace Belumi.Infrastructure.Services;
 
 public sealed class AuthService(
     BelumiDbContext db,
-    FirebaseAdminAppFactory firebaseAdminAppFactory,
-    FirebaseRoleService firebaseRoleService) : IAuthService
+    FirebaseAdminAppFactory firebaseAdminAppFactory) : IAuthService
 {
     public async Task<AuthResponse> FirebaseLoginAsync(FirebaseLoginRequest request, CancellationToken cancellationToken)
     {
@@ -33,7 +32,7 @@ public sealed class AuthService(
         }
 
         var firebaseUid = decodedToken.Uid;
-        var firestoreRole = await firebaseRoleService.GetRoleAsync(decodedToken, cancellationToken);
+        var tokenRole = FirebaseRoleClaimReader.ResolveRole(decodedToken.Claims);
         var email = decodedToken.Claims.TryGetValue("email", out var emailValue)
             ? emailValue?.ToString()?.Trim().ToLowerInvariant()
             : null;
@@ -64,7 +63,7 @@ public sealed class AuthService(
                 FullName = string.IsNullOrWhiteSpace(name) ? email : name,
                 AvatarUrl = picture,
                 PasswordHash = PasswordHasher.Hash($"firebase:{firebaseUid}:{Guid.NewGuid()}"),
-                Role = firestoreRole ?? UserRole.Customer
+                Role = tokenRole
             };
             db.Users.Add(user);
         }
@@ -76,10 +75,7 @@ public sealed class AuthService(
             }
 
             user.FirebaseUid ??= firebaseUid;
-            if (firestoreRole.HasValue)
-            {
-                user.Role = firestoreRole.Value;
-            }
+            user.Role = tokenRole;
 
             if (!string.IsNullOrWhiteSpace(name))
             {
