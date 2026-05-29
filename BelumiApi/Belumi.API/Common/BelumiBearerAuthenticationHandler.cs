@@ -15,8 +15,7 @@ public sealed class BelumiBearerAuthenticationHandler(
     ILoggerFactory logger,
     UrlEncoder encoder,
     BelumiDbContext db,
-    FirebaseAdminAppFactory firebaseAdminAppFactory,
-    FirebaseRoleService firebaseRoleService)
+    FirebaseAdminAppFactory firebaseAdminAppFactory)
     : AuthenticationHandler<AuthenticationSchemeOptions>(options, logger, encoder)
 {
     public const string SchemeName = "BelumiFirebase";
@@ -66,15 +65,13 @@ public sealed class BelumiBearerAuthenticationHandler(
             return null;
         }
 
-        var firestoreRole = await firebaseRoleService.GetRoleAsync(decodedToken);
-        var role = firestoreRole ?? user.Role;
+        var role = FirebaseRoleClaimReader.ResolveRole(decodedToken.Claims);
         Logger.LogInformation(
-            "Firebase auth resolved {Email} ({FirebaseUid}) with Firestore role {FirestoreRole}, DB role {DbRole}, effective role {EffectiveRole}.",
+            "Firebase auth resolved {Email} ({FirebaseUid}) with token role {TokenRole}, DB role {DbRole}.",
             user.Email,
             decodedToken.Uid,
-            firestoreRole?.ToString() ?? "missing",
-            user.Role,
-            role);
+            role,
+            user.Role);
 
         var claims = new List<Claim>
         {
