@@ -67,9 +67,14 @@ jobs:
       # 9. Kiểm tra xem Website thực sự đã Online và Swagger hiển thị không (Health Check)
       - name: Verify Deployment (Health Check)
         run: |
-          echo "Waiting 30 seconds for AWS Beanstalk to update environment..."
-          sleep 30
-          echo "Pinging Swagger Endpoint to verify online status..."
-          URL="http://${{ secrets.EB_ENVIRONMENT_NAME }}.${{ secrets.AWS_REGION }}.elasticbeanstalk.com/swagger/index.html"
-          echo "Target URL: $URL"
-          curl -I -s -f "$URL" && echo "Deployment is successfully verified! Swagger is online." || echo "Warning: Endpoint was not immediately reachable via HTTP. Check Elastic Beanstalk event logs."
+          if [ -z "${{ secrets.BEANSTALK_URL }}" ]; then
+            echo "Skipping Health Check because BEANSTALK_URL secret is not set."
+            echo "To enable automatic deployment verification, add BEANSTALK_URL to your GitHub repository secrets."
+          else
+            echo "Waiting 30 seconds for AWS Beanstalk to update environment..."
+            sleep 30
+            echo "Pinging Swagger Endpoint to verify online status..."
+            URL="${{ secrets.BEANSTALK_URL }}/swagger/index.html"
+            echo "Target URL: $URL"
+            curl -I -s -f "$URL" && echo "Deployment is successfully verified! Swagger is online." || echo "Warning: Swagger endpoint was not reachable at $URL. Please verify your Elastic Beanstalk configuration and RDS connectivity."
+          fi

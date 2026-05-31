@@ -12,8 +12,19 @@ public static class DependencyInjection
 {
     public static IServiceCollection AddInfrastructure(this IServiceCollection services, IConfiguration configuration)
     {
-        var connectionString = configuration.GetConnectionString("DefaultConnection")
-            ?? "Host=localhost;Port=5432;Database=belumi;Username=postgres;Password=12345";
+        var connectionString = configuration.GetConnectionString("DefaultConnection");
+        if (string.IsNullOrWhiteSpace(connectionString))
+        {
+            var isDev = configuration["ASPNETCORE_ENVIRONMENT"] == "Development" || string.IsNullOrEmpty(configuration["ASPNETCORE_ENVIRONMENT"]);
+            if (isDev)
+            {
+                connectionString = "Host=localhost;Port=5432;Database=belumi;Username=postgres;Password=12345";
+            }
+            else
+            {
+                throw new InvalidOperationException("Connection string 'DefaultConnection' was not found in production environment configuration.");
+            }
+        }
 
         services.AddDbContext<BelumiDbContext>(options => options.UseNpgsql(connectionString));
         services.AddSingleton<FirebaseAdminAppFactory>();
