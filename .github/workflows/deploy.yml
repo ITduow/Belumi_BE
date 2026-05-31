@@ -1,0 +1,80 @@
+name: Deploy Backend C# to AWS Elastic Beanstalk
+
+on:
+  push:
+    branches:
+      - main # Chạy tự động khi push code lên nhánh main
+
+permissions:
+  id-token: write # Yêu cầu quyền này nếu bạn dùng OpenID Connect (OIDC) để đăng nhập AWS
+  contents: read
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      # 1. Checkout mã nguồn từ GitHub
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      # 2. Thiết lập môi trường .NET SDK
+      - name: Setup .NET Core SDK
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '8.0.x' # Đồng bộ với phiên bản .NET bạn đang sử dụng
+
+      # 3. Phục hồi các package (Restore dependencies)
+      - name: Restore dependencies
+        run: dotnet restore BelumiApi.sln
+
+      # 4. Biên dịch thử nghiệm (Build) để cô lập lỗi biên dịch trước khi deploy
+      - name: Build Project
+        run: dotnet build BelumiApi.sln -c Release --no-restore
+
+      # 5. Xuất bản API tối ưu cho chạy thực tế (Publish)
+      - name: Publish API
+        run: dotnet publish BelumiApi/Belumi.API/Belumi.API.csproj -c Release --no-build -o ./publish
+
+      # 6. Đóng gói mã nguồn đã biên dịch thành file zip
+      - name: Generate deployment package
+        run: |
+          cd publish
+          zip -r ../deploy.zip .
+          cd ..
+
+      # 7. Đăng nhập và xác thực tài khoản AWS
+      # Lưu ý: Bạn cần cấu hình các Secrets trong Settings > Secrets > Actions của repository GitHub
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ secrets.AWS_REGION }} # Sử dụng Secret hoặc Variable cho Region
+
+      # 8. Tiến hành deploy lên AWS Elastic Beanstalk bằng action chuẩn
+      - name: Deploy to AWS Elastic Beanstalk
+        uses: einaregilsson/beanstalk-deploy@v22
+        with:
+          aws_access_key: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws_secret_key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          application_name: ${{ secrets.EB_APPLICATION_NAME }} # Đọc từ Secret trên GitHub
+          environment_name: ${{ secrets.EB_ENVIRONMENT_NAME }} # Đọc từ Secret trên GitHub
+          version_label: 'build-${{ github.sha }}'
+          region: ${{ secrets.AWS_REGION }} # Sử dụng Secret hoặc Variable cho Region
+          deployment_package: deploy.zip
+
+      # 9. Kiểm tra xem Website thực sự đã Online và Swagger hiển thị không (Health Check)
+      - name: Verify Deployment (Health Check)
+        run: |
+          if [ -z "${{ secrets.BEANSTALK_URL }}" ]; then
+            echo "Skipping Health Check because BEANSTALK_URL secret is not set."
+            echo "To enable automatic deployment verification, add BEANSTALK_URL to your GitHub repository secrets."
+          else
+            echo "Waiting 30 seconds for AWS Beanstalk to update environment..."
+            sleep 30
+            echo "Pinging Swagger Endpoint to verify online status..."
+            URL="${{ secrets.BEANSTALK_URL }}/swagger/index.html"
+            echo "Target URL: $URL"
+            curl -I -s -f "$URL" && echo "Deployment is successfully verified! Swagger is online." || echo "Warning: Swagger endpoint was not reachable at $URL. Please verify your Elastic Beanstalk configuration and RDS connectivity."
+          fi

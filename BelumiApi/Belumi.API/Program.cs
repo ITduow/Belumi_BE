@@ -42,7 +42,7 @@ var app = builder.Build();
 
 app.UseExceptionHandler();
 
-if (app.Environment.IsDevelopment())
+if (app.Environment.IsDevelopment() || app.Environment.IsProduction())
 {
     app.UseSwagger();
     app.UseSwaggerUI();
@@ -60,9 +60,19 @@ app.MapSkinEndpoints();
 
 using (var scope = app.Services.CreateScope())
 {
-    var db = scope.ServiceProvider.GetRequiredService<BelumiDbContext>();
-    await db.Database.MigrateAsync(); // Tạo tables nếu chưa có (dùng cho deploy lần đầu)
-    await BelumiSeedData.SeedAsync(db);
+    var services = scope.ServiceProvider;
+    try
+    {
+        var db = services.GetRequiredService<BelumiDbContext>();
+        await db.Database.MigrateAsync(); // Tạo tables nếu chưa có (dùng cho deploy lần đầu)
+        await BelumiSeedData.SeedAsync(db);
+    }
+    catch (Exception ex)
+    {
+        var logger = services.GetRequiredService<ILogger<Program>>();
+        logger.LogError(ex, "An error occurred during database migration or seeding. Please verify your RDS PostgreSQL connection settings.");
+        throw;
+    }
 }
 
 app.Run();
