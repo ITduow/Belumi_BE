@@ -58,8 +58,8 @@ jobs:
         with:
           aws_access_key: ${{ secrets.AWS_ACCESS_KEY_ID }}
           aws_secret_key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          application_name: ${{ secrets.EB_APPLICATION_NAME }} # Đọc từ Secret trên GitHub
-          environment_name: ${{ secrets.EB_ENVIRONMENT_NAME }} # Đọc từ Secret trên GitHub
+          application_name: 'Belumi-API'
+          environment_name: 'Belumi-API-env'
           version_label: 'build-${{ github.sha }}'
           region: ${{ secrets.AWS_REGION }} # Sử dụng Secret hoặc Variable cho Region
           deployment_package: deploy.zip
