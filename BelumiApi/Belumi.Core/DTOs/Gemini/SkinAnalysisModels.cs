@@ -14,6 +14,9 @@ public class SkinAnalysisResult
     [JsonPropertyName("acne_level")]
     public string AcneLevel { get; set; } = string.Empty;
 
+    [JsonPropertyName("acne_types")]
+    public List<string> AcneTypes { get; set; } = new();
+
     [JsonPropertyName("dark_spots")]
     public bool DarkSpots { get; set; }
 
@@ -25,12 +28,6 @@ public class SkinAnalysisResult
 
     [JsonPropertyName("uneven_tone")]
     public bool UnevenTone { get; set; }
-
-    [JsonPropertyName("top_concerns")]
-    public List<string> TopConcerns { get; set; } = new();
-
-    [JsonPropertyName("overall_score")]
-    public int OverallScore { get; set; }
 
     [JsonPropertyName("confidence")]
     public double Confidence { get; set; }

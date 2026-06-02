@@ -99,8 +99,8 @@ public class SkinAnalysisService : ISkinAnalysisService
             };
         }
 
-        _logger.LogInformation("OpenAI confidence={Confidence}, score={Score}, acne={Acne}",
-            result.Confidence, result.OverallScore, result.AcneLevel);
+        _logger.LogInformation("OpenAI confidence={Confidence}, acne={Acne}",
+            result.Confidence, result.AcneLevel);
 
         if (result.Confidence < 0.65)
         {
@@ -168,9 +168,7 @@ public class SkinAnalysisService : ISkinAnalysisService
         string sentence1;
         if (!concerns.Any())
         {
-            sentence1 = result.OverallScore >= 80
-                ? "Da bạn đang trong tình trạng tốt, không có dấu hiệu đáng lo ngại."
-                : "Da bạn chưa có vấn đề rõ ràng nhưng vẫn có thể cải thiện thêm.";
+            sentence1 = "Da bạn đang trong tình trạng ổn, hãy cố gắng duy trì routine chăm sóc da hiện tại.";
         }
         else
         {
@@ -214,7 +212,40 @@ public class SkinAnalysisService : ISkinAnalysisService
             _ => "Duy trì routine chăm sóc da sáng và tối là đủ để giữ da ở trạng thái tốt."
         };
 
-        return $"{sentence1} {sentence2}";
+        var acneTypeSentence = GenerateAcneTypeSentence(result);
+
+        return string.IsNullOrWhiteSpace(acneTypeSentence)
+            ? $"{sentence1} {sentence2}"
+            : $"{sentence1} {acneTypeSentence} {sentence2}";
+    }
+
+    private static string GenerateAcneTypeSentence(SkinAnalysisResult result)
+    {
+        if (result.AcneLevel == "none" || result.AcneTypes.Count == 0)
+            return string.Empty;
+
+        var labels = result.AcneTypes
+            .Select(type => type switch
+            {
+                "closed_comedone_like" => "mụn ẩn/mụn đầu trắng đóng",
+                "open_comedone_like" => "mụn đầu đen",
+                "papule_like" => "sẩn đỏ",
+                "pustule_like" => "mụn mủ",
+                "nodule_or_cyst_like" => "nốt viêm sâu dạng nang/cục",
+                _ => string.Empty
+            })
+            .Where(label => !string.IsNullOrWhiteSpace(label))
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .ToList();
+
+        if (labels.Count == 0)
+            return string.Empty;
+
+        var acneTypeText = labels.Count == 1
+            ? labels[0]
+            : string.Join(", ", labels[..^1]) + " và " + labels[^1];
+
+        return $"Các dạng mụn nhìn thấy gồm {acneTypeText}.";
     }
 
     private static List<IngredientRecommendation> GenerateRecommendedIngredients(SkinAnalysisResult result, string skinType)
@@ -522,18 +553,17 @@ public class SkinAnalysisService : ISkinAnalysisService
         "face_detected": { "type": "boolean" },
         "image_subject": { "type": "string", "enum": ["face", "animal", "object", "landscape", "unknown"] },
         "acne_level": { "type": "string", "enum": ["none", "mild", "moderate", "severe"] },
+        "acne_types": {
+          "type": "array",
+          "items": { "type": "string", "enum": ["closed_comedone_like", "open_comedone_like", "papule_like", "pustule_like", "nodule_or_cyst_like"] }
+        },
         "dark_spots": { "type": "boolean" },
         "enlarged_pores": { "type": "boolean" },
         "redness": { "type": "boolean" },
         "uneven_tone": { "type": "boolean" },
-        "top_concerns": {
-          "type": "array",
-          "items": { "type": "string", "enum": ["acne", "dark_spots", "pores", "dryness", "oiliness", "dullness", "redness"] }
-        },
-        "overall_score": { "type": "integer" },
         "confidence": { "type": "number" }
       },
-      "required": ["face_detected", "image_subject", "acne_level", "dark_spots", "enlarged_pores", "redness", "uneven_tone", "top_concerns", "overall_score", "confidence"],
+      "required": ["face_detected", "image_subject", "acne_level", "acne_types", "dark_spots", "enlarged_pores", "redness", "uneven_tone", "confidence"],
       "additionalProperties": false
     }
     """;
@@ -547,17 +577,37 @@ public class SkinAnalysisService : ISkinAnalysisService
         First determine whether the image contains a visible human face suitable for facial skin analysis.
         If the image does not contain a human face, set face_detected=false and image_subject to the best matching category.
         If the image contains an animal, object, landscape, product photo, or other non-face subject, do not infer skin concerns.
+        If face_detected=false, set acne_level="none", acne_types=[], all concern booleans=false, and confidence based only on subject detection.
 
         Your task: Analyze the facial image and identify VISIBLE skin concerns only when face_detected=true.
 
-        Look for:
-        - Acne or pimples (none/mild/moderate/severe)
-        - Dark spots or hyperpigmentation (yes/no)
-        - Enlarged or visible pores (yes/no)
-        - Redness or inflammation (yes/no)
-        - Uneven skin tone or dullness (yes/no)
+        Acne severity:
+        Classify acne_level using a Hayashi-inspired estimate of visible inflammatory lesions on one half of the face.
+        Inflammatory lesions include papules and pustules.
+        - none: 0 clearly visible inflammatory lesions and no notable non-inflammatory acne
+        - mild: 1-5 visible inflammatory lesions, or clearly visible mild non-inflammatory acne such as closed comedones, whiteheads, or blackheads
+        - moderate: 6-20 visible inflammatory lesions
+        - severe: 21 or more visible inflammatory lesions, dense inflamed clusters, or nodular/cystic-looking acne
 
-        overall_score: Rate overall skin health from 0 (severe issues) to 100 (perfect skin).
+        Do not count dark spots, acne scars, pores, freckles, shadows, makeup texture, or image noise as acne lesions.
+        If the image is unclear, lower confidence instead of guessing aggressively.
+
+        Identify visible acne-like lesion types and return all that apply in acne_types:
+        - closed_comedone_like: small smooth dome-shaped skin-colored, whitish, or grayish bumps, often called closed comedones or "mụn ẩn".
+        - open_comedone_like: small dark gray, brown, or black follicular plugs, often called blackheads.
+        - papule_like: small red or pink raised bumps without visible pus.
+        - pustule_like: red inflamed bumps with a visible white or yellow pus-like center.
+        - nodule_or_cyst_like: large, deep-looking, swollen red bumps or clustered severe inflammatory lesions. Do not diagnose cysts; only mark cyst-like or nodule-like appearance.
+        If no acne-like lesions are visible, return acne_types=[].
+
+        Other visible skin signs:
+        - dark_spots: true when visible brown/dark marks, post-acne hyperpigmentation, or hyperpigmented spots are clearly darker than surrounding skin.
+        - enlarged_pores: true when pores are visibly enlarged or prominent, especially around the nose, cheeks, or T-zone.
+        - redness: true when visible red/pink irritated or inflamed areas are present, including redness around acne lesions.
+        - uneven_tone: true when visible uneven color, dullness, or patchy tone is present.
+
+        Do not mark concerns true when they are likely caused only by shadows, uneven lighting, flash, filters, makeup, blur, or low image quality.
+
         confidence: How confident you are in this analysis based on image quality (0.0 to 1.0).
 
         Respond ONLY with valid JSON matching the schema. No explanations, no markdown.
