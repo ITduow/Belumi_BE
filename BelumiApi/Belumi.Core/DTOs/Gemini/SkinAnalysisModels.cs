@@ -26,9 +26,6 @@ public class SkinAnalysisResult
     [JsonPropertyName("redness")]
     public bool Redness { get; set; }
 
-    [JsonPropertyName("uneven_tone")]
-    public bool UnevenTone { get; set; }
-
     [JsonPropertyName("confidence")]
     public double Confidence { get; set; }
 

@@ -134,7 +134,6 @@ public class SkinAnalysisService : ISkinAnalysisService
         if (result.DarkSpots)           concernCount++;
         if (result.EnlargedPores)       concernCount++;
         if (result.Redness)             concernCount++;
-        if (result.UnevenTone)          concernCount++;
 
         return result.AcneLevel switch
         {
@@ -163,7 +162,6 @@ public class SkinAnalysisService : ISkinAnalysisService
         if (result.DarkSpots)     concerns.Add("thâm");
         if (result.EnlargedPores) concerns.Add("lỗ chân lông to");
         if (result.Redness)       concerns.Add("vùng đỏ");
-        if (result.UnevenTone)    concerns.Add("da không đều màu");
 
         string sentence1;
         if (!concerns.Any())
@@ -560,10 +558,9 @@ public class SkinAnalysisService : ISkinAnalysisService
         "dark_spots": { "type": "boolean" },
         "enlarged_pores": { "type": "boolean" },
         "redness": { "type": "boolean" },
-        "uneven_tone": { "type": "boolean" },
         "confidence": { "type": "number" }
       },
-      "required": ["face_detected", "image_subject", "acne_level", "acne_types", "dark_spots", "enlarged_pores", "redness", "uneven_tone", "confidence"],
+      "required": ["face_detected", "image_subject", "acne_level", "acne_types", "dark_spots", "enlarged_pores", "redness", "confidence"],
       "additionalProperties": false
     }
     """;
@@ -601,10 +598,9 @@ public class SkinAnalysisService : ISkinAnalysisService
         If no acne-like lesions are visible, return acne_types=[].
 
         Other visible skin signs:
-        - dark_spots: true when visible brown/dark marks, post-acne hyperpigmentation, or hyperpigmented spots are clearly darker than surrounding skin.
+        - dark_spots: true when visible post-acne marks, brown/dark spots, hyperpigmentation, or clearly uneven darker areas caused by pigmentation are present.
         - enlarged_pores: true when pores are visibly enlarged or prominent, especially around the nose, cheeks, or T-zone.
         - redness: true when visible red/pink irritated or inflamed areas are present, including redness around acne lesions.
-        - uneven_tone: true when visible uneven color, dullness, or patchy tone is present.
 
         Do not mark concerns true when they are likely caused only by shadows, uneven lighting, flash, filters, makeup, blur, or low image quality.
 
