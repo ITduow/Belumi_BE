@@ -2,7 +2,7 @@
 # BELUMI BACKEND - Production Dockerfile
 # =============================================================
 # Multi-stage build: reduces final image size from ~1.5GB to ~200MB
-# Compatible with Render Web Service (Docker) deployment
+# Compatible with AWS Elastic Beanstalk (Docker) deployment
 # =============================================================
 
 # ── Stage 1: BUILD ────────────────────────────────────────────
@@ -41,7 +41,7 @@ WORKDIR /app
 # Copy published output from build stage
 COPY --from=build /app/publish .
 
-# Render requires port 8080 by default for Docker services
+# AWS Elastic Beanstalk uses port 8080 by default for Docker services
 # ASPNETCORE_ENVIRONMENT=Production disables Swagger UI (security best practice)
 ENV ASPNETCORE_URLS=http://+:8080
 ENV ASPNETCORE_ENVIRONMENT=Production
