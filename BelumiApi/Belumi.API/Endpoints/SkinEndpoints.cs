@@ -3,16 +3,12 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Routing;
 using Microsoft.Extensions.Logging;
+using System;
 using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
-using System.Collections.Generic;
-using System.Text;
-using System.Text.Json;
-using System.Text.Json.Nodes;
 using Belumi.Core.DTOs.Gemini;
 using Belumi.Core.Interfaces;
-using System;
 
 namespace Belumi.API.Endpoints;
 
@@ -46,8 +42,10 @@ public static class SkinEndpoints
                 using var ms = new MemoryStream();
                 await image.CopyToAsync(ms);
                 imageBytes = ms.ToArray();
-                logger.LogInformation("Received file upload: {FileName} ({Size} bytes)",
-                    image.FileName, imageBytes.Length);
+                logger.LogInformation(
+                    "Received file upload: {FileName} ({Size} bytes)",
+                    image.FileName,
+                    imageBytes.Length);
             }
             else if (!string.IsNullOrWhiteSpace(image_base64))
             {
@@ -76,19 +74,19 @@ public static class SkinEndpoints
 
             return result.Status switch
             {
-                "success"         => Results.Ok(result),
+                "success" => Results.Ok(result),
                 "retake_required" => Results.UnprocessableEntity(result),
-                _                 => Results.Problem(
-                    detail:     result.Message,
+                _ => Results.Problem(
+                    detail: result.Message,
                     statusCode: StatusCodes.Status500InternalServerError,
-                    title:      "Lỗi hệ thống khi phân tích ảnh")
+                    title: "Lỗi hệ thống khi phân tích ảnh")
             };
         })
         .WithName("AnalyzeSkin")
         .WithSummary("Phân tích ảnh da mặt")
         .WithDescription(
             "Nhận ảnh khuôn mặt và loại da đã biết từ quiz. " +
-            "Trả về các vấn đề da nhìn thấy được, điểm tổng thể (0-100) và mô tả tiếng Việt.\n\n" +
+            "Trả về các vấn đề da nhìn thấy được, mức độ mụn, loại mụn, độ tin cậy và mô tả tiếng Việt.\n\n" +
             "**Cách gửi ảnh (chọn 1):**\n" +
             "- `image`: file upload (JPEG/PNG, max 5MB)\n" +
             "- `image_base64`: chuỗi base64, có thể kèm prefix `data:image/jpeg;base64,...`")
