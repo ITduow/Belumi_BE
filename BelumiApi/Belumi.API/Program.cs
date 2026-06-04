@@ -24,7 +24,13 @@ builder.Services.AddSwaggerGen();
 builder.Services.AddCors(options =>
 {
     options.AddPolicy("BelumiApp", policy =>
-        policy.AllowAnyHeader().AllowAnyMethod().AllowAnyOrigin());
+        policy.AllowAnyHeader()
+              .AllowAnyMethod()
+              .WithOrigins(
+                  "https://belumi.site",
+                  "http://localhost:3000",
+                  "http://localhost:5173"
+              ));
 });
 
 builder.Services.AddAuthentication(BelumiBearerAuthenticationHandler.SchemeName)
