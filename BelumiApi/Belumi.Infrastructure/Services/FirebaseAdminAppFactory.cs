@@ -27,8 +27,30 @@ public sealed class FirebaseAdminAppFactory(IConfiguration configuration)
 
             if (!string.IsNullOrWhiteSpace(firebaseCredentialsJson))
             {
+                // === DIAGNOSTIC LOGGING (remove after debugging) ===
+                Console.WriteLine($"[FIREBASE_DEBUG] Raw env var length: {firebaseCredentialsJson.Length}");
+                Console.WriteLine($"[FIREBASE_DEBUG] First 100 chars: {firebaseCredentialsJson[..Math.Min(100, firebaseCredentialsJson.Length)]}");
+                Console.WriteLine($"[FIREBASE_DEBUG] Contains raw LF: {firebaseCredentialsJson.Contains('\n')}");
+                Console.WriteLine($"[FIREBASE_DEBUG] Contains raw CR: {firebaseCredentialsJson.Contains('\r')}");
+                Console.WriteLine($"[FIREBASE_DEBUG] Contains literal \\n: {firebaseCredentialsJson.Contains("\\n")}");
+
                 var cleanedJson = firebaseCredentialsJson.Trim('\'', '"');
+                Console.WriteLine($"[FIREBASE_DEBUG] After Trim length: {cleanedJson.Length}");
+
                 var escapedJson = EscapeJsonStringNewlines(cleanedJson);
+                Console.WriteLine($"[FIREBASE_DEBUG] After Escape length: {escapedJson.Length}");
+                Console.WriteLine($"[FIREBASE_DEBUG] Escaped changed: {cleanedJson != escapedJson}");
+                Console.WriteLine($"[FIREBASE_DEBUG] Escaped first 200: {escapedJson[..Math.Min(200, escapedJson.Length)]}");
+
+                // Extract private_key preview for debugging
+                var pkIdx = escapedJson.IndexOf("private_key");
+                if (pkIdx >= 0)
+                {
+                    var preview = escapedJson.Substring(pkIdx, Math.Min(120, escapedJson.Length - pkIdx));
+                    Console.WriteLine($"[FIREBASE_DEBUG] private_key area: {preview}");
+                }
+                // === END DIAGNOSTIC LOGGING ===
+
                 credential = GoogleCredential.FromJson(escapedJson);
             }
             else
