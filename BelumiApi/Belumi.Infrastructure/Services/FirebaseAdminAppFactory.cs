@@ -72,20 +72,10 @@ public sealed class FirebaseAdminAppFactory(IConfiguration configuration)
             var root = doc.RootElement;
 
             if (!root.TryGetProperty("private_key", out var pkElement))
-                return json; // No private_key field, nothing to fix
+                return json;
 
             var pk = pkElement.GetString();
             if (pk == null) return json;
-
-            // === DIAGNOSTIC: log the parsed private_key value ===
-            Console.WriteLine($"[PK_DEBUG] private_key length: {pk.Length}");
-            Console.WriteLine($"[PK_DEBUG] first 80 chars: {pk[..Math.Min(80, pk.Length)]}");
-            Console.WriteLine($"[PK_DEBUG] last 80 chars: {pk[Math.Max(0, pk.Length - 80)..]}");
-            Console.WriteLine($"[PK_DEBUG] contains real newline (\\n): {pk.Contains('\n')}");
-            Console.WriteLine($"[PK_DEBUG] contains literal backslash-n: {pk.Contains("\\n")}");
-            Console.WriteLine($"[PK_DEBUG] starts with BEGIN marker: {pk.StartsWith("-----BEGIN")}");
-            Console.WriteLine($"[PK_DEBUG] ends with END marker: {pk.TrimEnd().EndsWith("-----END PRIVATE KEY-----")}");
-            // === END DIAGNOSTIC ===
 
             // If the key already has proper newlines, it's fine
             if (pk.Contains('\n')) return json;
@@ -97,16 +87,40 @@ public sealed class FirebaseAdminAppFactory(IConfiguration configuration)
             int endIdx = pk.IndexOf(endMarker, StringComparison.Ordinal);
 
             if (beginIdx < 0 || endIdx < 0)
-                return json; // Markers not found, can't fix
+                return json;
 
-            // Extract the base64 body between the PEM markers
-            var body = pk.Substring(beginIdx + beginMarker.Length, endIdx - beginIdx - beginMarker.Length).Trim();
+            // Extract the body between markers
+            var body = pk.Substring(beginIdx + beginMarker.Length, endIdx - beginIdx - beginMarker.Length);
 
-            // Reconstruct proper PEM format with newlines
-            var fixedPk = beginMarker + "\n" + body + "\n" + endMarker + "\n";
+            // AWS EB strips backslash from \n, leaving stray 'n' chars:
+            //   -----BEGIN PRIVATE KEY-----nMIIEvg...64chars...nMIIE...n-----END PRIVATE KEY-----n
+            // Strip leading 'n' (was \n after BEGIN marker)
+            if (body.StartsWith("n")) body = body.Substring(1);
+            // Strip trailing 'n' (was \n before END marker)  
+            if (body.EndsWith("n")) body = body.Substring(0, body.Length - 1);
 
-            Console.WriteLine($"[PK_DEBUG] FIXED private_key length: {fixedPk.Length}");
-            Console.WriteLine($"[PK_DEBUG] FIXED first 80: {fixedPk[..Math.Min(80, fixedPk.Length)]}");
+            // Now body = <64 base64>n<64 base64>n...<last line>
+            // The stray 'n' appears every 64 chars of base64.
+            // Remove them by processing in 65-char chunks (64 base64 + 1 stray n)
+            var cleanBase64 = new System.Text.StringBuilder(body.Length);
+            int linePos = 0;
+            for (int i = 0; i < body.Length; i++)
+            {
+                if (linePos == 64 && body[i] == 'n')
+                {
+                    // This 'n' is a stray separator — skip it
+                    linePos = 0;
+                    continue;
+                }
+                cleanBase64.Append(body[i]);
+                linePos++;
+            }
+
+            // Reconstruct proper PEM format
+            var fixedPk = beginMarker + "\n" + cleanBase64 + "\n" + endMarker + "\n";
+
+            Console.WriteLine($"[PK_FIX] Original body length: {body.Length}, Clean base64 length: {cleanBase64.Length}");
+            Console.WriteLine($"[PK_FIX] Removed {body.Length - cleanBase64.Length} stray 'n' chars");
 
             // Reconstruct the JSON with the fixed private_key
             var jsonNode = JsonNode.Parse(json);
@@ -116,7 +130,7 @@ public sealed class FirebaseAdminAppFactory(IConfiguration configuration)
         catch (Exception ex)
         {
             Console.WriteLine($"[FIREBASE_FIX] Failed to fix private key: {ex.Message}");
-            return json; // If anything fails, return the original
+            return json;
         }
     }
 }
