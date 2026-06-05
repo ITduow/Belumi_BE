@@ -77,6 +77,16 @@ public sealed class FirebaseAdminAppFactory(IConfiguration configuration)
             var pk = pkElement.GetString();
             if (pk == null) return json;
 
+            // === DIAGNOSTIC: log the parsed private_key value ===
+            Console.WriteLine($"[PK_DEBUG] private_key length: {pk.Length}");
+            Console.WriteLine($"[PK_DEBUG] first 80 chars: {pk[..Math.Min(80, pk.Length)]}");
+            Console.WriteLine($"[PK_DEBUG] last 80 chars: {pk[Math.Max(0, pk.Length - 80)..]}");
+            Console.WriteLine($"[PK_DEBUG] contains real newline (\\n): {pk.Contains('\n')}");
+            Console.WriteLine($"[PK_DEBUG] contains literal backslash-n: {pk.Contains("\\n")}");
+            Console.WriteLine($"[PK_DEBUG] starts with BEGIN marker: {pk.StartsWith("-----BEGIN")}");
+            Console.WriteLine($"[PK_DEBUG] ends with END marker: {pk.TrimEnd().EndsWith("-----END PRIVATE KEY-----")}");
+            // === END DIAGNOSTIC ===
+
             // If the key already has proper newlines, it's fine
             if (pk.Contains('\n')) return json;
 
@@ -94,6 +104,9 @@ public sealed class FirebaseAdminAppFactory(IConfiguration configuration)
 
             // Reconstruct proper PEM format with newlines
             var fixedPk = beginMarker + "\n" + body + "\n" + endMarker + "\n";
+
+            Console.WriteLine($"[PK_DEBUG] FIXED private_key length: {fixedPk.Length}");
+            Console.WriteLine($"[PK_DEBUG] FIXED first 80: {fixedPk[..Math.Min(80, fixedPk.Length)]}");
 
             // Reconstruct the JSON with the fixed private_key
             var jsonNode = JsonNode.Parse(json);
