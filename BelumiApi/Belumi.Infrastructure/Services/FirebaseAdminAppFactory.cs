@@ -28,7 +28,8 @@ public sealed class FirebaseAdminAppFactory(IConfiguration configuration)
             if (!string.IsNullOrWhiteSpace(firebaseCredentialsJson))
             {
                 var cleanedJson = firebaseCredentialsJson.Trim('\'', '"');
-                credential = GoogleCredential.FromJson(cleanedJson);
+                var escapedJson = EscapeJsonStringNewlines(cleanedJson);
+                credential = GoogleCredential.FromJson(escapedJson);
             }
             else
             {
@@ -54,5 +55,58 @@ public sealed class FirebaseAdminAppFactory(IConfiguration configuration)
                 Credential = credential
             });
         }
+    }
+
+    public static string EscapeJsonStringNewlines(string json)
+    {
+        if (string.IsNullOrEmpty(json)) return json;
+
+        var sb = new System.Text.StringBuilder(json.Length);
+        bool inString = false;
+        bool escaped = false;
+
+        for (int i = 0; i < json.Length; i++)
+        {
+            char c = json[i];
+            if (c == '"' && !escaped)
+            {
+                inString = !inString;
+                sb.Append(c);
+            }
+            else if (inString)
+            {
+                if (c == '\r')
+                {
+                    if (i + 1 < json.Length && json[i + 1] == '\n')
+                    {
+                        i++;
+                    }
+                    sb.Append("\\n");
+                }
+                else if (c == '\n')
+                {
+                    sb.Append("\\n");
+                }
+                else
+                {
+                    if (c == '\\')
+                    {
+                        escaped = !escaped;
+                    }
+                    else
+                    {
+                        escaped = false;
+                    }
+                    sb.Append(c);
+                }
+            }
+            else
+            {
+                sb.Append(c);
+                escaped = false;
+            }
+        }
+
+        return sb.ToString();
     }
 }
