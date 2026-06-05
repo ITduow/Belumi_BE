@@ -119,9 +119,6 @@ public sealed class FirebaseAdminAppFactory(IConfiguration configuration)
             // Reconstruct proper PEM format
             var fixedPk = beginMarker + "\n" + cleanBase64 + "\n" + endMarker + "\n";
 
-            Console.WriteLine($"[PK_FIX] Original body length: {body.Length}, Clean base64 length: {cleanBase64.Length}");
-            Console.WriteLine($"[PK_FIX] Removed {body.Length - cleanBase64.Length} stray 'n' chars");
-
             // Reconstruct the JSON with the fixed private_key
             var jsonNode = JsonNode.Parse(json);
             jsonNode!["private_key"] = fixedPk;
