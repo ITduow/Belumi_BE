@@ -16,6 +16,7 @@ public sealed class BelumiDbContext(DbContextOptions<BelumiDbContext> options) :
     public DbSet<Banner> Banners => Set<Banner>();
     public DbSet<ContactRequest> ContactRequests => Set<ContactRequest>();
     public DbSet<SkinAnalysis> SkinAnalyses => Set<SkinAnalysis>();
+    public DbSet<Ingredient> Ingredients => Set<Ingredient>();
     public DbSet<IngredientLookup> IngredientLookups => Set<IngredientLookup>();
     public DbSet<MakeupConsultation> MakeupConsultations => Set<MakeupConsultation>();
     public DbSet<User> Users => Set<User>();
@@ -44,6 +45,7 @@ public sealed class BelumiDbContext(DbContextOptions<BelumiDbContext> options) :
         modelBuilder.Entity<NewsCategory>().HasIndex(category => category.Slug).IsUnique();
         modelBuilder.Entity<NewsLike>().HasIndex(like => new { like.UserId, like.NewsId }).IsUnique();
         modelBuilder.Entity<NewsSave>().HasIndex(save => new { save.UserId, save.NewsId }).IsUnique();
+        modelBuilder.Entity<Ingredient>().HasIndex(ingredient => ingredient.NameInc).IsUnique();
         modelBuilder.Entity<NewsLike>()
             .HasOne(like => like.News)
             .WithMany()

@@ -13,6 +13,121 @@ namespace Belumi.API.Controllers;
 [Route("api/ingredients")]
 public sealed class IngredientController(IAiBeautyService aiBeautyService, BelumiDbContext db) : ControllerBase
 {
+    [HttpGet]
+    public async Task<ActionResult<IngredientListResult>> Get(
+        [FromQuery] string? search,
+        [FromQuery] string? category,
+        [FromQuery] int page = 1,
+        [FromQuery] int pageSize = 20,
+        CancellationToken cancellationToken = default)
+    {
+        page = Math.Max(1, page);
+        pageSize = Math.Clamp(pageSize, 1, 100);
+
+        var query = db.Ingredients.AsNoTracking().AsQueryable();
+
+        if (!string.IsNullOrWhiteSpace(search))
+        {
+            var term = search.Trim().ToLower();
+            query = query.Where(x =>
+                x.NameInc.ToLower().Contains(term) ||
+                x.Name.ToLower().Contains(term) ||
+                x.Category.ToLower().Contains(term) ||
+                x.Description.ToLower().Contains(term));
+        }
+
+        if (!string.IsNullOrWhiteSpace(category))
+        {
+            var categoryTerm = category.Trim().ToLower();
+            query = query.Where(x => x.Category.ToLower().Contains(categoryTerm));
+        }
+
+        var total = await query.CountAsync(cancellationToken);
+        var items = await query
+            .OrderBy(x => x.NameInc)
+            .Skip((page - 1) * pageSize)
+            .Take(pageSize)
+            .Select(x => ToDto(x))
+            .ToListAsync(cancellationToken);
+
+        return Ok(new IngredientListResult(items, total, page, pageSize));
+    }
+
+    [HttpGet("{id:guid}")]
+    public async Task<ActionResult<IngredientDto>> GetById(Guid id, CancellationToken cancellationToken)
+    {
+        var ingredient = await db.Ingredients.AsNoTracking()
+            .FirstOrDefaultAsync(x => x.Id == id, cancellationToken);
+
+        return ingredient is null ? NotFound() : Ok(ToDto(ingredient));
+    }
+
+    [HttpPost]
+    [Authorize(Roles = nameof(UserRole.Admin))]
+    public async Task<ActionResult<IngredientDto>> Create(IngredientCreateRequest request, CancellationToken cancellationToken)
+    {
+        var nameInc = request.NameInc.Trim();
+        if (await db.Ingredients.AnyAsync(x => x.NameInc.ToLower() == nameInc.ToLower(), cancellationToken))
+        {
+            return Conflict(new { message = "An ingredient with this INCI name already exists." });
+        }
+
+        var ingredient = new Ingredient
+        {
+            NameInc = nameInc,
+            Name = request.Name.Trim(),
+            Category = request.Category.Trim(),
+            Description = request.Description.Trim(),
+            Links = request.Links.Trim()
+        };
+
+        db.Ingredients.Add(ingredient);
+        await db.SaveChangesAsync(cancellationToken);
+
+        return Created($"/api/ingredients/{ingredient.Id}", ToDto(ingredient));
+    }
+
+    [HttpPut("{id:guid}")]
+    [Authorize(Roles = nameof(UserRole.Admin))]
+    public async Task<ActionResult<IngredientDto>> Update(Guid id, IngredientUpdateRequest request, CancellationToken cancellationToken)
+    {
+        var ingredient = await db.Ingredients.FindAsync([id], cancellationToken);
+        if (ingredient is null)
+        {
+            return NotFound();
+        }
+
+        var nameInc = request.NameInc.Trim();
+        if (await db.Ingredients.AnyAsync(x => x.Id != id && x.NameInc.ToLower() == nameInc.ToLower(), cancellationToken))
+        {
+            return Conflict(new { message = "An ingredient with this INCI name already exists." });
+        }
+
+        ingredient.NameInc = nameInc;
+        ingredient.Name = request.Name.Trim();
+        ingredient.Category = request.Category.Trim();
+        ingredient.Description = request.Description.Trim();
+        ingredient.Links = request.Links.Trim();
+
+        await db.SaveChangesAsync(cancellationToken);
+        return Ok(ToDto(ingredient));
+    }
+
+    [HttpDelete("{id:guid}")]
+    [Authorize(Roles = nameof(UserRole.Admin))]
+    public async Task<IActionResult> Delete(Guid id, CancellationToken cancellationToken)
+    {
+        var ingredient = await db.Ingredients.FindAsync([id], cancellationToken);
+        if (ingredient is null)
+        {
+            return NotFound();
+        }
+
+        db.Ingredients.Remove(ingredient);
+        await db.SaveChangesAsync(cancellationToken);
+        return NoContent();
+    }
+
     [HttpPost("lookup")]
     public ActionResult<IngredientLookupResult> Lookup(IngredientLookupRequest request) =>
         Ok(aiBeautyService.LookupIngredients(request));
@@ -77,6 +192,17 @@ public sealed class IngredientController(IAiBeautyService aiBeautyService, Belum
         });
         await db.SaveChangesAsync(cancellationToken);
     }
+
+    private static IngredientDto ToDto(Ingredient ingredient) =>
+        new(
+            ingredient.Id,
+            ingredient.NameInc,
+            ingredient.Name,
+            ingredient.Category,
+            ingredient.Description,
+            ingredient.Links,
+            ingredient.CreatedAt,
+            ingredient.UpdatedAt);
 }
 
 public sealed record IngredientAnalyzeTextRequest(Guid UserId, string InputText, string? SkinType, IReadOnlyCollection<string>? Allergies);
