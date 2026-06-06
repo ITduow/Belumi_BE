@@ -255,8 +255,150 @@ public sealed class AdminController(BelumiDbContext db) : ControllerBase
         return NoContent();
     }
 
+    [HttpPost("ingredients/import-csv")]
+    [RequestSizeLimit(10_000_000)]
+    public async Task<IActionResult> ImportIngredientsCsv(IFormFile file, CancellationToken cancellationToken)
+    {
+        if (file.Length == 0)
+        {
+            return BadRequest("CSV file is required.");
+        }
+
+        using var reader = new StreamReader(file.OpenReadStream());
+        var rows = ReadCsv(await reader.ReadToEndAsync(cancellationToken));
+        if (rows.Count == 0)
+        {
+            return BadRequest("CSV file is empty.");
+        }
+
+        var headers = rows[0]
+            .Select((header, index) => new { Header = NormalizeHeader(header), Index = index })
+            .GroupBy(x => x.Header)
+            .ToDictionary(x => x.Key, x => x.First().Index);
+        var requiredHeaders = new[] { "name_inc", "name", "category", "description", "links" };
+        var missingHeaders = requiredHeaders.Where(header => !headers.ContainsKey(header)).ToList();
+        if (missingHeaders.Count > 0)
+        {
+            return BadRequest(new { message = "CSV is missing required columns.", missingHeaders });
+        }
+
+        var existingByNameInc = await db.Ingredients
+            .ToDictionaryAsync(x => x.NameInc.ToLower(), cancellationToken);
+
+        var created = 0;
+        var updated = 0;
+        var skipped = 0;
+
+        foreach (var row in rows.Skip(1))
+        {
+            var value = CsvRow(headers, row);
+            var nameInc = value("name_inc");
+            if (string.IsNullOrWhiteSpace(nameInc))
+            {
+                skipped++;
+                continue;
+            }
+
+            var key = nameInc.ToLower();
+            if (existingByNameInc.TryGetValue(key, out var ingredient))
+            {
+                updated++;
+            }
+            else
+            {
+                ingredient = new Ingredient();
+                existingByNameInc[key] = ingredient;
+                db.Ingredients.Add(ingredient);
+                created++;
+            }
+
+            ingredient.NameInc = nameInc;
+            ingredient.Name = value("name");
+            ingredient.Category = value("category");
+            ingredient.Description = value("description");
+            ingredient.Links = value("links");
+        }
+
+        await db.SaveChangesAsync(cancellationToken);
+
+        return Ok(new
+        {
+            totalRows = rows.Count - 1,
+            created,
+            updated,
+            skipped
+        });
+    }
+
     private static string Slugify(string value) =>
         string.Join('-', value.Trim().ToLowerInvariant().Split(' ', StringSplitOptions.RemoveEmptyEntries));
+
+    private static string NormalizeHeader(string value) => value.Trim().Trim('\ufeff').ToLowerInvariant();
+
+    private static Func<string, string> CsvRow(IReadOnlyDictionary<string, int> headers, IReadOnlyList<string> row) =>
+        header =>
+        {
+            return headers.TryGetValue(header, out var index) && index < row.Count ? row[index].Trim() : string.Empty;
+        };
+
+    private static List<List<string>> ReadCsv(string csv)
+    {
+        var rows = new List<List<string>>();
+        var row = new List<string>();
+        var value = new System.Text.StringBuilder();
+        var inQuotes = false;
+
+        for (var i = 0; i < csv.Length; i++)
+        {
+            var current = csv[i];
+            if (current == '"')
+            {
+                if (inQuotes && i + 1 < csv.Length && csv[i + 1] == '"')
+                {
+                    value.Append('"');
+                    i++;
+                }
+                else
+                {
+                    inQuotes = !inQuotes;
+                }
+                continue;
+            }
+
+            if (current == ',' && !inQuotes)
+            {
+                row.Add(value.ToString());
+                value.Clear();
+                continue;
+            }
+
+            if ((current == '\n' || current == '\r') && !inQuotes)
+            {
+                if (current == '\r' && i + 1 < csv.Length && csv[i + 1] == '\n')
+                {
+                    i++;
+                }
+                row.Add(value.ToString());
+                value.Clear();
+                if (row.Any(cell => !string.IsNullOrWhiteSpace(cell)))
+                {
+                    rows.Add(row);
+                }
+                row = [];
+                continue;
+            }
+
+            value.Append(current);
+        }
+
+        row.Add(value.ToString());
+        if (row.Any(cell => !string.IsNullOrWhiteSpace(cell)))
+        {
+            rows.Add(row);
+        }
+
+        return rows;
+    }
 }
 
 public sealed record UserStatusRequest(bool IsActive);
