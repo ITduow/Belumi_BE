@@ -1,14 +1,13 @@
 using System.Security.Cryptography;
 using System.Text.Json;
 using Microsoft.Extensions.Caching.Memory;
-using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 using SixLabors.ImageSharp;
 using SixLabors.ImageSharp.Formats.Jpeg;
 using SixLabors.ImageSharp.Processing;
 using Belumi.Core.Interfaces;
 using Belumi.Core.DTOs.Gemini;
-using OpenAI;
+using Belumi.Infrastructure.AI;
 using OpenAI.Chat;
 using System;
 using System.Collections.Generic;
@@ -22,16 +21,16 @@ public class SkinAnalysisService : ISkinAnalysisService
 {
     private readonly IMemoryCache _cache;
     private readonly ILogger<SkinAnalysisService> _logger;
-    private readonly IConfiguration _configuration;
+    private readonly IOpenAiChatService _openAiChatService;
 
     public SkinAnalysisService(
         IMemoryCache cache,
         ILogger<SkinAnalysisService> logger,
-        IConfiguration configuration)
+        IOpenAiChatService openAiChatService)
     {
-        _cache         = cache;
-        _logger        = logger;
-        _configuration = configuration;
+        _cache             = cache;
+        _logger            = logger;
+        _openAiChatService = openAiChatService;
     }
 
     // ─────────────────────────────────────────────────────────────────────────
@@ -496,16 +495,6 @@ public class SkinAnalysisService : ISkinAnalysisService
 
     private async Task<SkinAnalysisResult?> CallOpenAiAsync(byte[] imageBytes, string skinType)
     {
-        var apiKey = Environment.GetEnvironmentVariable("OPENAI_API_KEY") ?? _configuration["OpenAI:ApiKey"];
-        if (string.IsNullOrWhiteSpace(apiKey))
-        {
-            throw new InvalidOperationException("OpenAI API Key is not configured.");
-        }
-
-        var model = _configuration["OpenAI:Model"] ?? "gpt-4o-mini";
-        
-        ChatClient client = new(model, apiKey);
-        
         var prompt = BuildPrompt(skinType);
         var messages = new ChatMessage[]
         {
@@ -526,7 +515,7 @@ public class SkinAnalysisService : ISkinAnalysisService
             Temperature = 0.1f
         };
 
-        ChatCompletion completion = await client.CompleteChatAsync(messages, options);
+        ChatCompletion completion = await _openAiChatService.CompleteChatAsync(messages, options);
         
         if (completion.Content == null || completion.Content.Count == 0)
         {

@@ -1,5 +1,6 @@
 using Belumi.Application.Abstractions;
 using Belumi.Core.Interfaces;
+using Belumi.Infrastructure.AI;
 using Belumi.Infrastructure.Data;
 using Belumi.Infrastructure.Services;
 using Microsoft.EntityFrameworkCore;
@@ -27,8 +28,35 @@ public static class DependencyInjection
         }
 
         services.AddDbContext<BelumiDbContext>(options => options.UseNpgsql(connectionString));
+        services.Configure<OpenAiOptions>(options =>
+        {
+            options.ApiKey = configuration["OpenAI:ApiKey"];
+            options.Model = configuration["OpenAI:Model"] ?? options.Model;
+        });
+        services.Configure<InciApiOptions>(options =>
+        {
+            options.ApiKey = Environment.GetEnvironmentVariable("INCI_API_KEY") ?? configuration["InciApi:ApiKey"];
+            options.BaseUrl = configuration["InciApi:BaseUrl"] ?? options.BaseUrl;
+            if (int.TryParse(configuration["InciApi:CacheDays"], out var cacheDays))
+            {
+                options.CacheDays = cacheDays;
+            }
+        });
         services.AddSingleton<FirebaseAdminAppFactory>();
         services.AddMemoryCache();
+        services.AddScoped<ChatbotRequestContext>();
+        services.AddScoped<ChatToolCallTracker>();
+        services.AddScoped<BelumiChatPlugin>();
+        services.AddScoped<IOpenAiChatService, OpenAiChatService>();
+        services.AddHttpClient<IInciApiClient, InciApiClient>((provider, client) =>
+        {
+            var options = provider.GetRequiredService<Microsoft.Extensions.Options.IOptions<InciApiOptions>>().Value;
+            client.BaseAddress = new Uri(options.BaseUrl.TrimEnd('/') + "/");
+            if (!string.IsNullOrWhiteSpace(options.ApiKey))
+            {
+                client.DefaultRequestHeaders.Add("X-API-Key", options.ApiKey);
+            }
+        });
         services.AddScoped<IAuthService, AuthService>();
         services.AddScoped<ISkinAnalysisService, SkinAnalysisService>();
         services.AddScoped<ICatalogService, CatalogService>();

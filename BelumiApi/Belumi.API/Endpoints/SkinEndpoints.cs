@@ -6,9 +6,16 @@ using Microsoft.Extensions.Logging;
 using System;
 using System.IO;
 using System.Linq;
+using System.Security.Claims;
+using System.Text.Json;
 using System.Threading.Tasks;
+using Belumi.API.Controllers;
 using Belumi.Core.DTOs.Gemini;
+using Belumi.Core.Entities;
 using Belumi.Core.Interfaces;
+using Belumi.Infrastructure.Data;
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.EntityFrameworkCore;
 
 namespace Belumi.API.Endpoints;
 
@@ -24,6 +31,8 @@ public static class SkinEndpoints
         group.MapPost("/analyze", async (
             [FromForm] string skin_type,
             ISkinAnalysisService service,
+            BelumiDbContext db,
+            ClaimsPrincipal user,
             ILogger<ISkinAnalysisService> logger,
             IFormFile? image = null,
             [FromForm] string? image_base64 = null) =>
@@ -71,6 +80,7 @@ public static class SkinEndpoints
                 });
 
             var result = await service.AnalyzeAsync(imageBytes, normalizedType);
+            await SaveSuccessfulAnalysisAsync(db, user, result, normalizedType, logger);
 
             return result.Status switch
             {
@@ -96,6 +106,157 @@ public static class SkinEndpoints
         .ProducesProblem(StatusCodes.Status500InternalServerError)
         .DisableAntiforgery();
 
+        group.MapGet("/history/me", async (
+            BelumiDbContext db,
+            ClaimsPrincipal user,
+            int page = 1,
+            int pageSize = 20) =>
+        {
+            var userId = user.GetUserId();
+            if (userId == Guid.Empty)
+            {
+                return Results.Unauthorized();
+            }
+
+            page = Math.Max(1, page);
+            pageSize = Math.Clamp(pageSize, 1, 50);
+
+            var query = db.SkinAnalyses.AsNoTracking()
+                .Where(x => x.UserId == userId)
+                .OrderByDescending(x => x.AnalyzedAt);
+
+            var total = await query.CountAsync();
+            var items = await query
+                .Skip((page - 1) * pageSize)
+                .Take(pageSize)
+                .Select(x => new SkinAnalysisHistoryItem(
+                    x.Id,
+                    x.SkinType,
+                    x.Concerns,
+                    x.Recommendations,
+                    x.Score,
+                    x.AnalyzedAt,
+                    x.AiResult,
+                    x.RecommendedIngredients,
+                    x.AvoidIngredients))
+                .ToListAsync();
+
+            return Results.Ok(new SkinAnalysisHistoryResponse(items, total, page, pageSize));
+        })
+        .RequireAuthorization()
+        .WithName("GetMySkinAnalysisHistory")
+        .WithSummary("Láº¥y lá»‹ch sá»­ phÃ¢n tÃ­ch da cá»§a user hiá»‡n táº¡i");
+
+        group.MapGet("/history/me/{id:guid}", async (
+            Guid id,
+            BelumiDbContext db,
+            ClaimsPrincipal user) =>
+        {
+            var userId = user.GetUserId();
+            if (userId == Guid.Empty)
+            {
+                return Results.Unauthorized();
+            }
+
+            var item = await db.SkinAnalyses.AsNoTracking()
+                .Where(x => x.Id == id && x.UserId == userId)
+                .Select(x => new SkinAnalysisHistoryItem(
+                    x.Id,
+                    x.SkinType,
+                    x.Concerns,
+                    x.Recommendations,
+                    x.Score,
+                    x.AnalyzedAt,
+                    x.AiResult,
+                    x.RecommendedIngredients,
+                    x.AvoidIngredients))
+                .FirstOrDefaultAsync();
+
+            return item is null ? Results.NotFound() : Results.Ok(item);
+        })
+        .RequireAuthorization()
+        .WithName("GetMySkinAnalysisHistoryDetail")
+        .WithSummary("Láº¥y chi tiáº¿t má»™t káº¿t quáº£ phÃ¢n tÃ­ch da cá»§a user hiá»‡n táº¡i");
+
         return app;
     }
+
+    private static async Task SaveSuccessfulAnalysisAsync(
+        BelumiDbContext db,
+        ClaimsPrincipal user,
+        AnalysisResponse response,
+        string skinType,
+        ILogger logger)
+    {
+        var userId = user.GetUserId();
+        if (userId == Guid.Empty || response is not { Status: "success", Result: not null })
+        {
+            return;
+        }
+
+        var exists = await db.Users.FindAsync(userId) != null;
+        if (!exists)
+        {
+            logger.LogWarning("Skip saving skin analysis because user {UserId} was not found", userId);
+            return;
+        }
+
+        var result = response.Result;
+        db.SkinAnalyses.Add(new SkinAnalysis
+        {
+            UserId = userId,
+            SkinType = skinType,
+            Concerns = BuildConcerns(result),
+            AiResult = JsonSerializer.Serialize(result),
+            RecommendedIngredients = JsonSerializer.Serialize(result.RecommendedIngredients),
+            AvoidIngredients = JsonSerializer.Serialize(result.AvoidOrProfessionalOnly),
+            Recommendations = BuildRecommendations(result),
+            Score = (int)Math.Round(Math.Clamp(result.Confidence, 0, 1) * 100),
+            AnalyzedAt = DateTime.UtcNow
+        });
+
+        await db.SaveChangesAsync();
+    }
+
+    private static string BuildConcerns(SkinAnalysisResult result)
+    {
+        var concerns = new[]
+        {
+            result.AcneLevel != "none" ? $"acne:{result.AcneLevel}" : null,
+            result.DarkSpots ? "dark_spots" : null,
+            result.EnlargedPores ? "enlarged_pores" : null,
+            result.Redness ? "redness" : null
+        };
+
+        return string.Join(", ", concerns.Where(x => !string.IsNullOrWhiteSpace(x)));
+    }
+
+    private static string BuildRecommendations(SkinAnalysisResult result)
+    {
+        var parts = new[]
+        {
+            result.Description,
+            result.Advice.Count > 0 ? "Advice: " + string.Join(" | ", result.Advice) : null,
+            result.Warnings.Count > 0 ? "Warnings: " + string.Join(" | ", result.Warnings) : null
+        };
+
+        return string.Join("\n", parts.Where(x => !string.IsNullOrWhiteSpace(x)));
+    }
 }
+
+public sealed record SkinAnalysisHistoryResponse(
+    IReadOnlyCollection<SkinAnalysisHistoryItem> Items,
+    int Total,
+    int Page,
+    int PageSize);
+
+public sealed record SkinAnalysisHistoryItem(
+    Guid Id,
+    string SkinType,
+    string Concerns,
+    string Recommendations,
+    int Score,
+    DateTime AnalyzedAt,
+    string? AiResult,
+    string? RecommendedIngredients,
+    string? AvoidIngredients);
