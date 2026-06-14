@@ -50,4 +50,32 @@ public sealed class UserInteractionService(BelumiDbContext db) : IUserInteractio
         await db.SaveChangesAsync(cancellationToken);
         return profile;
     }
+
+    public async Task<bool> DeleteAccountAsync(Guid userId, CancellationToken cancellationToken)
+    {
+        var user = await db.Users.FirstOrDefaultAsync(x => x.Id == userId, cancellationToken);
+        if (user is null)
+        {
+            return false;
+        }
+
+        await using var transaction = await db.Database.BeginTransactionAsync(cancellationToken);
+
+        await db.NewsLikes.Where(x => x.UserId == userId).ExecuteDeleteAsync(cancellationToken);
+        await db.NewsSaves.Where(x => x.UserId == userId).ExecuteDeleteAsync(cancellationToken);
+        await db.WishlistItems.Where(x => x.UserId == userId).ExecuteDeleteAsync(cancellationToken);
+        await db.BeautyProfiles.Where(x => x.UserId == userId).ExecuteDeleteAsync(cancellationToken);
+        await db.SkinAnalyses.Where(x => x.UserId == userId).ExecuteDeleteAsync(cancellationToken);
+        await db.IngredientLookups.Where(x => x.UserId == userId).ExecuteDeleteAsync(cancellationToken);
+        await db.MakeupConsultations.Where(x => x.UserId == userId).ExecuteDeleteAsync(cancellationToken);
+        await db.AiUsageLogs.Where(x => x.UserId == userId).ExecuteDeleteAsync(cancellationToken);
+        await db.Payments.Where(x => x.UserId == userId).ExecuteDeleteAsync(cancellationToken);
+        await db.UserSubscriptions.Where(x => x.UserId == userId).ExecuteDeleteAsync(cancellationToken);
+
+        db.Users.Remove(user);
+        await db.SaveChangesAsync(cancellationToken);
+        await transaction.CommitAsync(cancellationToken);
+
+        return true;
+    }
 }

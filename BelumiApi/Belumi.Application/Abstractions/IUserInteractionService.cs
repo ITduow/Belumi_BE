@@ -10,4 +10,5 @@ public interface IUserInteractionService
     Task RemoveWishlistItemAsync(Guid userId, Guid productId, CancellationToken cancellationToken);
     Task<User?> GetMeAsync(Guid userId, CancellationToken cancellationToken);
     Task<BeautyProfile> UpdateBeautyProfileAsync(Guid userId, BeautyProfileRequest request, CancellationToken cancellationToken);
+    Task<bool> DeleteAccountAsync(Guid userId, CancellationToken cancellationToken);
 }
