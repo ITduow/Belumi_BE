@@ -23,4 +23,11 @@ public sealed class AccountController(IUserInteractionService userInteractionSer
         var profile = await userInteractionService.UpdateBeautyProfileAsync(User.GetUserId(), request, cancellationToken);
         return Ok(profile);
     }
+
+    [HttpDelete]
+    public async Task<IActionResult> DeleteAccount(CancellationToken cancellationToken)
+    {
+        var deleted = await userInteractionService.DeleteAccountAsync(User.GetUserId(), cancellationToken);
+        return deleted ? NoContent() : NotFound();
+    }
 }
