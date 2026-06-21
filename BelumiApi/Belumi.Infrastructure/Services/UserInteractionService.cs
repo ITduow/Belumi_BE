@@ -2,11 +2,14 @@ using Belumi.Application.Abstractions;
 using Belumi.Core.DTOs;
 using Belumi.Core.Entities;
 using Belumi.Infrastructure.Data;
+using FirebaseAdmin.Auth;
 using Microsoft.EntityFrameworkCore;
 
 namespace Belumi.Infrastructure.Services;
 
-public sealed class UserInteractionService(BelumiDbContext db) : IUserInteractionService
+public sealed class UserInteractionService(
+    BelumiDbContext db,
+    FirebaseAdminAppFactory firebaseAdminAppFactory) : IUserInteractionService
 {
     public async Task<IReadOnlyCollection<WishlistItem>> GetWishlistAsync(Guid userId, CancellationToken cancellationToken) =>
         await db.WishlistItems.AsNoTracking().Include(x => x.Product).Where(x => x.UserId == userId).ToListAsync(cancellationToken);
@@ -57,6 +60,21 @@ public sealed class UserInteractionService(BelumiDbContext db) : IUserInteractio
         if (user is null)
         {
             return false;
+        }
+
+        var firebaseUid = user.FirebaseUid;
+
+        if (!string.IsNullOrWhiteSpace(firebaseUid))
+        {
+            firebaseAdminAppFactory.GetOrCreate();
+            try
+            {
+                await FirebaseAuth.DefaultInstance.DeleteUserAsync(firebaseUid, cancellationToken);
+            }
+            catch (FirebaseAuthException ex) when (ex.AuthErrorCode == AuthErrorCode.UserNotFound)
+            {
+                // The Firebase user may already be gone; continue deleting Belumi-owned data.
+            }
         }
 
         await using var transaction = await db.Database.BeginTransactionAsync(cancellationToken);
