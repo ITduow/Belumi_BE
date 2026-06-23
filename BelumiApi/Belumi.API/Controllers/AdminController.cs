@@ -263,6 +263,26 @@ public sealed class AdminController(BelumiDbContext db) : ControllerBase
         return Ok(result);
     }
 
+    [HttpGet("payments")]
+    public async Task<IActionResult> Payments(CancellationToken cancellationToken) =>
+        Ok(await db.Payments.AsNoTracking()
+            .OrderByDescending(x => x.CreatedAt)
+            .Select(x => new 
+            { 
+                x.Id, 
+                x.UserId, 
+                UserEmail = x.User != null ? x.User.Email : "Ẩn danh", 
+                UserFullName = x.User != null ? x.User.FullName : "Ẩn danh",
+                PlanName = x.Plan != null ? x.Plan.Name : "Chưa rõ", 
+                x.Amount, 
+                x.Currency, 
+                x.PaymentMethod, 
+                x.PaymentStatus, 
+                x.TransactionCode, 
+                x.CreatedAt 
+            })
+            .ToListAsync(cancellationToken));
+
     [HttpGet("users")]
     public async Task<IActionResult> Users(CancellationToken cancellationToken) =>
         Ok(await db.Users.AsNoTracking()
