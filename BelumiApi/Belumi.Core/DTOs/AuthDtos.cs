@@ -10,4 +10,5 @@ public sealed record AuthResponse(
     string FullName,
     string? Phone,
     UserRole Role,
-    string Token);
+    string Token,
+    string? SubscriptionPlan);

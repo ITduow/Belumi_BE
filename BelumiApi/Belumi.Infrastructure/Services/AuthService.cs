@@ -89,6 +89,6 @@ public sealed class AuthService(
         }
 
         await db.SaveChangesAsync(cancellationToken);
-        return new AuthResponse(user.Id, user.Email, user.FullName, user.Phone, user.Role, request.IdToken);
+        return new AuthResponse(user.Id, user.Email, user.FullName, user.Phone, user.Role, request.IdToken, user.SubscriptionPlan);
     }
 }
