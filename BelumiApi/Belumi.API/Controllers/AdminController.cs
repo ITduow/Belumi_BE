@@ -37,7 +37,7 @@ public sealed class AdminController(BelumiDbContext db) : ControllerBase
         }
         else
         {
-            var startOfToday = now.Date;
+            var startOfToday = new DateTime(now.Year, now.Month, now.Day, 0, 0, 0, DateTimeKind.Utc);
             currentStart = startOfToday.AddDays(-29);
             prevStart = currentStart.AddDays(-30);
             prevEnd = currentStart.AddTicks(-1);
