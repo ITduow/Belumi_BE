@@ -146,42 +146,83 @@ public static class BelumiSeedData
 
     private static async Task EnsureSubscriptionPlansAsync(BelumiDbContext db)
     {
-        if (await db.SubscriptionPlans.AnyAsync())
+        var plans = await db.SubscriptionPlans.ToListAsync();
+
+        if (!plans.Any())
         {
+            db.SubscriptionPlans.AddRange(
+                new SubscriptionPlan
+                {
+                    Name = "Free",
+                    BillingCycle = "monthly",
+                    Price = 0,
+                    MonthlyAiLimit = 3,
+                    IngredientLookupLimit = 5,
+                    MakeupConsultationLimit = 2,
+                    CanUseAdvancedAnalysis = false
+                },
+                new SubscriptionPlan
+                {
+                    Name = "Monthly",
+                    BillingCycle = "monthly",
+                    Price = 59000,
+                    MonthlyAiLimit = 9999,
+                    IngredientLookupLimit = 9999,
+                    MakeupConsultationLimit = 9999,
+                    CanUseAdvancedAnalysis = true
+                },
+                new SubscriptionPlan
+                {
+                    Name = "Yearly",
+                    BillingCycle = "yearly",
+                    Price = 599000,
+                    MonthlyAiLimit = 9999,
+                    IngredientLookupLimit = 9999,
+                    MakeupConsultationLimit = 9999,
+                    CanUseAdvancedAnalysis = true
+                });
+            await db.SaveChangesAsync();
             return;
         }
 
-        db.SubscriptionPlans.AddRange(
-            new SubscriptionPlan
-            {
-                Name = "Free",
-                BillingCycle = "monthly",
-                Price = 0,
-                MonthlyAiLimit = 3,
-                IngredientLookupLimit = 5,
-                MakeupConsultationLimit = 2,
-                CanUseAdvancedAnalysis = false
-            },
-            new SubscriptionPlan
-            {
-                Name = "Monthly",
-                BillingCycle = "monthly",
-                Price = 59000,
-                MonthlyAiLimit = 9999,
-                IngredientLookupLimit = 9999,
-                MakeupConsultationLimit = 9999,
-                CanUseAdvancedAnalysis = true
-            },
-            new SubscriptionPlan
-            {
-                Name = "Yearly",
-                BillingCycle = "yearly",
-                Price = 599000,
-                MonthlyAiLimit = 9999,
-                IngredientLookupLimit = 9999,
-                MakeupConsultationLimit = 9999,
-                CanUseAdvancedAnalysis = true
-            });
+        // Cập nhật thông tin các gói hiện có để tránh lỗi Khóa ngoại (Foreign Key)
+        var freePlan = plans.FirstOrDefault(p => p.Price == 0 || p.Name.Contains("Free") || p.Name.Contains("Miễn Phí"));
+        if (freePlan != null)
+        {
+            freePlan.Name = "Free";
+            freePlan.BillingCycle = "monthly";
+            freePlan.Price = 0;
+            freePlan.MonthlyAiLimit = 3;
+            freePlan.IngredientLookupLimit = 5;
+            freePlan.MakeupConsultationLimit = 2;
+            freePlan.CanUseAdvancedAnalysis = false;
+        }
+
+        var monthlyPlan = plans.FirstOrDefault(p => p.Price == 99000 || p.Name.Contains("Monthly") || p.Name.Contains("Tháng") || p.Name.Contains("Premium") || p.Name.Contains("plus"));
+        if (monthlyPlan != null)
+        {
+            monthlyPlan.Name = "Monthly";
+            monthlyPlan.BillingCycle = "monthly";
+            monthlyPlan.Price = 59000;
+            monthlyPlan.MonthlyAiLimit = 9999;
+            monthlyPlan.IngredientLookupLimit = 9999;
+            monthlyPlan.MakeupConsultationLimit = 9999;
+            monthlyPlan.CanUseAdvancedAnalysis = true;
+        }
+
+        var yearlyPlan = plans.FirstOrDefault(p => p.Price == 199000 || p.Name.Contains("Yearly") || p.Name.Contains("Năm") || p.Name.Contains("Annual") || p.Name.Contains("pro"));
+        if (yearlyPlan != null)
+        {
+            yearlyPlan.Name = "Yearly";
+            yearlyPlan.BillingCycle = "yearly";
+            yearlyPlan.Price = 599000;
+            yearlyPlan.MonthlyAiLimit = 9999;
+            yearlyPlan.IngredientLookupLimit = 9999;
+            yearlyPlan.MakeupConsultationLimit = 9999;
+            yearlyPlan.CanUseAdvancedAnalysis = true;
+        }
+
+        await db.SaveChangesAsync();
     }
 
     private static async Task EnsureNewsCategoriesAsync(BelumiDbContext db)
