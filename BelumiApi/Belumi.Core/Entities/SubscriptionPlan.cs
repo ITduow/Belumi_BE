@@ -3,6 +3,7 @@ namespace Belumi.Core.Entities;
 public sealed class SubscriptionPlan : BaseEntity
 {
     public string Name { get; set; } = "Free";
+    public string BillingCycle { get; set; } = "monthly";
     public decimal Price { get; set; }
     public int MonthlyAiLimit { get; set; }
     public int IngredientLookupLimit { get; set; }

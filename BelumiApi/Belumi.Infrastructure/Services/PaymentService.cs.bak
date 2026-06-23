@@ -9,7 +9,7 @@ using Belumi.Core.Entities;
 using Belumi.Infrastructure.Data;
 using Microsoft.EntityFrameworkCore;
 using PayOS;
-using PayOS.Models.V2.PaymentRequests;
+using PayOS.Models;
 using PayOS.Models.Webhooks;
 
 namespace Belumi.Infrastructure.Services;
@@ -122,7 +122,7 @@ public sealed class PaymentService : IPaymentService
             ReturnUrl = returnUrl
         };
 
-        var result = await _payOSClient.PaymentRequests.CreateAsync(request);
+        var result = await _payOSClient.PaymentRequests.CreateAsync(request, cancellationToken);
 
         return new PayOsLinkResponse(result.CheckoutUrl, orderCode, plan.Price);
     }
@@ -143,13 +143,13 @@ public sealed class PaymentService : IPaymentService
             return "Paid";
         }
 
-        var payOsInfo = await _payOSClient.PaymentRequests.GetAsync(orderCode);
+        var payOsInfo = await _payOSClient.PaymentRequests.GetAsync(orderCode, cancellationToken);
         if (payOsInfo == null)
         {
             throw new Exception("Không tìm thấy thông tin giao dịch trên PayOS.");
         }
 
-        if (payOsInfo.Status == PaymentLinkStatus.Paid)
+        if (payOsInfo.Status == PaymentLinkStatus.PAID)
         {
             await ActivateUserSubscriptionAsync(payment, cancellationToken);
             return "Paid";
@@ -186,8 +186,8 @@ public sealed class PaymentService : IPaymentService
             Signature = webhookData.signature
         };
 
-        // Verify webhook signature (no cancellationToken parameter supported)
-        var verifiedData = await _payOSClient.Webhooks.VerifyAsync(sdkWebhookBody);
+        // Verify webhook signature
+        var verifiedData = await _payOSClient.Webhooks.VerifyAsync(sdkWebhookBody, cancellationToken);
         if (verifiedData == null)
         {
             return false;

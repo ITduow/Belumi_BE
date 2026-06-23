@@ -40,7 +40,7 @@ public sealed class BelumiDbContext(DbContextOptions<BelumiDbContext> options) :
         modelBuilder.Entity<ContactRequest>().Property(contact => contact.Status).HasConversion<string>();
         modelBuilder.Entity<NewsArticle>().Property(post => post.Status).HasConversion<string>();
         modelBuilder.Entity<WishlistItem>().HasIndex(item => new { item.UserId, item.ProductId }).IsUnique();
-        modelBuilder.Entity<SubscriptionPlan>().HasIndex(plan => plan.Name).IsUnique();
+        modelBuilder.Entity<SubscriptionPlan>().HasIndex(plan => new { plan.Name, plan.BillingCycle }).IsUnique();
         modelBuilder.Entity<NewsArticle>().HasIndex(post => post.Slug).IsUnique();
         modelBuilder.Entity<NewsArticle>().HasIndex(post => new { post.Category, post.Status, post.PublishedAt });
         modelBuilder.Entity<NewsCategory>().HasIndex(category => category.Slug).IsUnique();
