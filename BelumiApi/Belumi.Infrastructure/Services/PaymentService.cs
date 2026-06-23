@@ -160,6 +160,11 @@ public sealed class PaymentService : IPaymentService
 
     public async Task<bool> ProcessWebhookAsync(PayOsWebhookRequest webhookData, CancellationToken cancellationToken)
     {
+        if (webhookData.data == null)
+        {
+            return true; // Test webhook ping từ PayOS dashboard
+        }
+
         // Chuyển đổi DTO webhook của ta sang model của SDK để verify
         var sdkWebhookBody = new Webhook
         {
