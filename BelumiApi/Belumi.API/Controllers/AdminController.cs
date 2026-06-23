@@ -198,41 +198,47 @@ public sealed class AdminController(BelumiDbContext db) : ControllerBase
             .Take(5)
             .ToListAsync(cancellationToken);
 
-        var recentPayments = await db.Payments
+        var recentPaymentsRaw = await db.Payments
             .OrderByDescending(x => x.CreatedAt)
             .Take(5)
-            .Select(x => new RecentActivityDto
-            {
-                Type = "payment",
-                Title = "Giao dịch " + (x.PaymentStatus == "Paid" || x.PaymentStatus == "MockPaid" ? "thành công" : "chờ xử lý"),
-                Subtitle = x.TransactionCode + " - " + x.Amount.ToString("N0") + " VND",
-                Timestamp = x.CreatedAt
-            })
+            .Select(x => new { x.PaymentStatus, x.TransactionCode, x.Amount, x.CreatedAt })
             .ToListAsync(cancellationToken);
 
-        var recentSignups = await db.Users
+        var recentPayments = recentPaymentsRaw.Select(x => new RecentActivityDto
+        {
+            Type = "payment",
+            Title = "Giao dịch " + (x.PaymentStatus == "Paid" || x.PaymentStatus == "MockPaid" ? "thành công" : "chờ xử lý"),
+            Subtitle = x.TransactionCode + " - " + x.Amount.ToString("N0") + " VND",
+            Timestamp = x.CreatedAt
+        }).ToList();
+
+        var recentSignupsRaw = await db.Users
             .OrderByDescending(x => x.CreatedAt)
             .Take(5)
-            .Select(x => new RecentActivityDto
-            {
-                Type = "signup",
-                Title = "Đăng ký thành viên mới",
-                Subtitle = x.FullName + " (" + x.Email + ")",
-                Timestamp = x.CreatedAt
-            })
+            .Select(x => new { x.FullName, x.Email, x.CreatedAt })
             .ToListAsync(cancellationToken);
 
-        var recentScans = await db.SkinAnalyses
+        var recentSignups = recentSignupsRaw.Select(x => new RecentActivityDto
+        {
+            Type = "signup",
+            Title = "Đăng ký thành viên mới",
+            Subtitle = x.FullName + " (" + x.Email + ")",
+            Timestamp = x.CreatedAt
+        }).ToList();
+
+        var recentScansRaw = await db.SkinAnalyses
             .OrderByDescending(x => x.CreatedAt)
             .Take(5)
-            .Select(x => new RecentActivityDto
-            {
-                Type = "scan",
-                Title = "Phân tích da mới",
-                Subtitle = "Loại da: " + x.SkinType + " - Điểm số: " + x.Score,
-                Timestamp = x.CreatedAt
-            })
+            .Select(x => new { x.SkinType, x.Score, x.CreatedAt })
             .ToListAsync(cancellationToken);
+
+        var recentScans = recentScansRaw.Select(x => new RecentActivityDto
+        {
+            Type = "scan",
+            Title = "Phân tích da mới",
+            Subtitle = "Loại da: " + x.SkinType + " - Điểm số: " + x.Score,
+            Timestamp = x.CreatedAt
+        }).ToList();
 
         var recentActivities = recentPayments
             .Concat(recentSignups)
