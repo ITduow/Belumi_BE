@@ -1,4 +1,5 @@
 using Belumi.Core.Entities;
+using Belumi.Core.DTOs;
 using Belumi.Infrastructure.Data;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -11,6 +12,251 @@ namespace Belumi.API.Controllers;
 [Authorize(Roles = nameof(UserRole.Admin))]
 public sealed class AdminController(BelumiDbContext db) : ControllerBase
 {
+    [HttpGet("dashboard/analytics")]
+    public async Task<IActionResult> GetDashboardAnalytics([FromQuery] string period = "daily", CancellationToken cancellationToken = default)
+    {
+        period = period.ToLowerInvariant();
+        
+        DateTime now = DateTime.UtcNow;
+        DateTime currentStart;
+        DateTime prevStart;
+        DateTime prevEnd;
+        
+        if (period == "yearly")
+        {
+            currentStart = new DateTime(now.Year - 4, 1, 1, 0, 0, 0, DateTimeKind.Utc);
+            prevStart = new DateTime(now.Year - 9, 1, 1, 0, 0, 0, DateTimeKind.Utc);
+            prevEnd = currentStart.AddTicks(-1);
+        }
+        else if (period == "monthly")
+        {
+            var startOfThisMonth = new DateTime(now.Year, now.Month, 1, 0, 0, 0, DateTimeKind.Utc);
+            currentStart = startOfThisMonth.AddMonths(-11);
+            prevStart = currentStart.AddMonths(-12);
+            prevEnd = currentStart.AddTicks(-1);
+        }
+        else
+        {
+            var startOfToday = now.Date;
+            currentStart = startOfToday.AddDays(-29);
+            prevStart = currentStart.AddDays(-30);
+            prevEnd = currentStart.AddTicks(-1);
+        }
+        
+        var currentPayments = await db.Payments
+            .Where(x => x.CreatedAt >= currentStart && (x.PaymentStatus == "Paid" || x.PaymentStatus == "MockPaid"))
+            .Select(x => new { x.Amount, x.CreatedAt })
+            .ToListAsync(cancellationToken);
+
+        var prevPayments = await db.Payments
+            .Where(x => x.CreatedAt >= prevStart && x.CreatedAt <= prevEnd && (x.PaymentStatus == "Paid" || x.PaymentStatus == "MockPaid"))
+            .Select(x => new { x.Amount, x.CreatedAt })
+            .ToListAsync(cancellationToken);
+
+        var currentUsers = await db.Users
+            .Where(x => x.CreatedAt >= currentStart)
+            .Select(x => new { x.SubscriptionPlan, x.CreatedAt })
+            .ToListAsync(cancellationToken);
+
+        var prevUsersCount = await db.Users
+            .CountAsync(x => x.CreatedAt >= prevStart && x.CreatedAt <= prevEnd, cancellationToken);
+
+        var currentSkinAnalyses = await db.SkinAnalyses
+            .Where(x => x.CreatedAt >= currentStart)
+            .Select(x => new { x.SkinType, x.Score, x.CreatedAt })
+            .ToListAsync(cancellationToken);
+
+        var prevSkinAnalysesCount = await db.SkinAnalyses
+            .CountAsync(x => x.CreatedAt >= prevStart && x.CreatedAt <= prevEnd, cancellationToken);
+
+        var currentLookups = await db.IngredientLookups
+            .Where(x => x.CreatedAt >= currentStart)
+            .Select(x => new { x.InputText, x.CreatedAt })
+            .ToListAsync(cancellationToken);
+
+        var prevLookupsCount = await db.IngredientLookups
+            .CountAsync(x => x.CreatedAt >= prevStart && x.CreatedAt <= prevEnd, cancellationToken);
+
+        var currentConsultations = await db.MakeupConsultations
+            .Where(x => x.CreatedAt >= currentStart)
+            .Select(x => new { x.CreatedAt })
+            .ToListAsync(cancellationToken);
+
+        var prevConsultationsCount = await db.MakeupConsultations
+            .CountAsync(x => x.CreatedAt >= prevStart && x.CreatedAt <= prevEnd, cancellationToken);
+
+        decimal currentRevenue = currentPayments.Sum(x => x.Amount);
+        decimal prevRevenue = prevPayments.Sum(x => x.Amount);
+        double revenueGrowth = prevRevenue == 0 ? (currentRevenue > 0 ? 100 : 0) : (double)((currentRevenue - prevRevenue) / prevRevenue) * 100;
+
+        int currentUsersCount = currentUsers.Count;
+        double userGrowth = prevUsersCount == 0 ? (currentUsersCount > 0 ? 100 : 0) : (double)(currentUsersCount - prevUsersCount) / prevUsersCount * 100;
+
+        int currentScansCount = currentSkinAnalyses.Count + currentLookups.Count + currentConsultations.Count;
+        int prevScansCount = prevSkinAnalysesCount + prevLookupsCount + prevConsultationsCount;
+        double scanGrowth = prevScansCount == 0 ? (currentScansCount > 0 ? 100 : 0) : (double)(currentScansCount - prevScansCount) / prevScansCount * 100;
+
+        int totalUsers = await db.Users.CountAsync(cancellationToken);
+        int premiumUsers = await db.Users.CountAsync(x => x.SubscriptionPlan != "Free", cancellationToken);
+        double conversionRate = totalUsers == 0 ? 0 : (double)premiumUsers / totalUsers * 100;
+
+        var overview = new TotalOverviewDto
+        {
+            TotalRevenue = currentRevenue,
+            RevenueGrowthPercent = Math.Round(revenueGrowth, 1),
+            NewUsers = currentUsersCount,
+            UserGrowthPercent = Math.Round(userGrowth, 1),
+            TotalScans = currentScansCount,
+            ScanGrowthPercent = Math.Round(scanGrowth, 1),
+            ConversionRate = Math.Round(conversionRate, 1),
+            PremiumUsersCount = premiumUsers
+        };
+
+        var timeSeries = new List<TimeSeriesPointDto>();
+
+        if (period == "yearly")
+        {
+            for (int i = 4; i >= 0; i--)
+            {
+                int year = now.Year - i;
+                string label = year.ToString();
+                
+                decimal rev = currentPayments.Where(x => x.CreatedAt.Year == year).Sum(x => x.Amount);
+                int u = currentUsers.Where(x => x.CreatedAt.Year == year).Count();
+                int s = currentSkinAnalyses.Where(x => x.CreatedAt.Year == year).Count() +
+                        currentLookups.Where(x => x.CreatedAt.Year == year).Count() +
+                        currentConsultations.Where(x => x.CreatedAt.Year == year).Count();
+                
+                timeSeries.Add(new TimeSeriesPointDto { Label = label, Revenue = rev, NewUsers = u, Scans = s });
+            }
+        }
+        else if (period == "monthly")
+        {
+            for (int i = 11; i >= 0; i--)
+            {
+                DateTime targetMonth = now.AddMonths(-i);
+                string label = targetMonth.ToString("MMM yyyy", System.Globalization.CultureInfo.InvariantCulture);
+                
+                decimal rev = currentPayments.Where(x => x.CreatedAt.Year == targetMonth.Year && x.CreatedAt.Month == targetMonth.Month).Sum(x => x.Amount);
+                int u = currentUsers.Where(x => x.CreatedAt.Year == targetMonth.Year && x.CreatedAt.Month == targetMonth.Month).Count();
+                int s = currentSkinAnalyses.Where(x => x.CreatedAt.Year == targetMonth.Year && x.CreatedAt.Month == targetMonth.Month).Count() +
+                        currentLookups.Where(x => x.CreatedAt.Year == targetMonth.Year && x.CreatedAt.Month == targetMonth.Month).Count() +
+                        currentConsultations.Where(x => x.CreatedAt.Year == targetMonth.Year && x.CreatedAt.Month == targetMonth.Month).Count();
+                
+                timeSeries.Add(new TimeSeriesPointDto { Label = label, Revenue = rev, NewUsers = u, Scans = s });
+            }
+        }
+        else
+        {
+            for (int i = 29; i >= 0; i--)
+            {
+                DateTime targetDate = now.AddDays(-i);
+                string label = targetDate.ToString("dd/MM");
+                
+                decimal rev = currentPayments.Where(x => x.CreatedAt.Date == targetDate.Date).Sum(x => x.Amount);
+                int u = currentUsers.Where(x => x.CreatedAt.Date == targetDate.Date).Count();
+                int s = currentSkinAnalyses.Where(x => x.CreatedAt.Date == targetDate.Date).Count() +
+                        currentLookups.Where(x => x.CreatedAt.Date == targetDate.Date).Count() +
+                        currentConsultations.Where(x => x.CreatedAt.Date == targetDate.Date).Count();
+                
+                timeSeries.Add(new TimeSeriesPointDto { Label = label, Revenue = rev, NewUsers = u, Scans = s });
+            }
+        }
+
+        var plans = await db.Users
+            .GroupBy(x => x.SubscriptionPlan)
+            .Select(g => new { Name = g.Key, Count = g.Count() })
+            .ToListAsync(cancellationToken);
+        
+        int totalUsersForPercentage = plans.Sum(x => x.Count);
+        var subPlansDto = plans.Select(x => new PieItemDto
+        {
+            Name = string.IsNullOrWhiteSpace(x.Name) ? "Free" : x.Name,
+            Count = x.Count,
+            Percentage = totalUsersForPercentage == 0 ? 0 : Math.Round((double)x.Count / totalUsersForPercentage * 100, 1)
+        }).ToList();
+
+        var skinTypes = await db.SkinAnalyses
+            .Where(x => !string.IsNullOrEmpty(x.SkinType))
+            .GroupBy(x => x.SkinType)
+            .Select(g => new { Name = g.Key, Count = g.Count() })
+            .ToListAsync(cancellationToken);
+        
+        int totalSkinTypes = skinTypes.Sum(x => x.Count);
+        var skinTypesDto = skinTypes.Select(x => new PieItemDto
+        {
+            Name = x.Name,
+            Count = x.Count,
+            Percentage = totalSkinTypes == 0 ? 0 : Math.Round((double)x.Count / totalSkinTypes * 100, 1)
+        }).ToList();
+
+        var topIngredients = await db.IngredientLookups
+            .Where(x => !string.IsNullOrEmpty(x.InputText))
+            .GroupBy(x => x.InputText)
+            .Select(g => new BarItemDto { Name = g.Key, Count = g.Count() })
+            .OrderByDescending(x => x.Count)
+            .Take(5)
+            .ToListAsync(cancellationToken);
+
+        var recentPayments = await db.Payments
+            .OrderByDescending(x => x.CreatedAt)
+            .Take(5)
+            .Select(x => new RecentActivityDto
+            {
+                Type = "payment",
+                Title = "Giao dịch " + (x.PaymentStatus == "Paid" || x.PaymentStatus == "MockPaid" ? "thành công" : "chờ xử lý"),
+                Subtitle = x.TransactionCode + " - " + x.Amount.ToString("N0") + " VND",
+                Timestamp = x.CreatedAt
+            })
+            .ToListAsync(cancellationToken);
+
+        var recentSignups = await db.Users
+            .OrderByDescending(x => x.CreatedAt)
+            .Take(5)
+            .Select(x => new RecentActivityDto
+            {
+                Type = "signup",
+                Title = "Đăng ký thành viên mới",
+                Subtitle = x.FullName + " (" + x.Email + ")",
+                Timestamp = x.CreatedAt
+            })
+            .ToListAsync(cancellationToken);
+
+        var recentScans = await db.SkinAnalyses
+            .OrderByDescending(x => x.CreatedAt)
+            .Take(5)
+            .Select(x => new RecentActivityDto
+            {
+                Type = "scan",
+                Title = "Phân tích da mới",
+                Subtitle = "Loại da: " + x.SkinType + " - Điểm số: " + x.Score,
+                Timestamp = x.CreatedAt
+            })
+            .ToListAsync(cancellationToken);
+
+        var recentActivities = recentPayments
+            .Concat(recentSignups)
+            .Concat(recentScans)
+            .OrderByDescending(x => x.Timestamp)
+            .Take(8)
+            .ToList();
+
+        var result = new AdminAnalyticsDto
+        {
+            Overview = overview,
+            TimeSeries = timeSeries,
+            Distributions = new DistributionDto
+            {
+                SubscriptionPlans = subPlansDto,
+                SkinTypes = skinTypesDto,
+                TopIngredients = topIngredients
+            },
+            RecentActivities = recentActivities
+        };
+
+        return Ok(result);
+    }
+
     [HttpGet("users")]
     public async Task<IActionResult> Users(CancellationToken cancellationToken) =>
         Ok(await db.Users.AsNoTracking()
