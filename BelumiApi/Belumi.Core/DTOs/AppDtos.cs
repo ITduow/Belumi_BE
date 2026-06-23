@@ -34,5 +34,20 @@ public sealed record MakeupConsultationRequest(string SkinTone, string Occasion,
 public sealed record MakeupConsultationResult(string LookName, string Base, string Eyes, string Lips, IReadOnlyCollection<string> ProductSuggestions);
 public sealed record MakeupTryOnRequest(string ImageUrl, string ProductName, string ProductType, string Shade, string HexColor);
 public sealed record MakeupTryOnResult(string ProductName, string ProductType, string Shade, string HexColor, int MatchScore, string PreviewNote, IReadOnlyCollection<string> ApplicationTips);
-public sealed record PaymentQrRequest(string PlanCode, string CustomerEmail);
-public sealed record PaymentQrResponse(string PlanCode, decimal Amount, string BankCode, string AccountNumber, string Description, string VietQrUrl);
+public sealed record PayOsLinkRequest(Guid PlanId, string CancelUrl, string ReturnUrl);
+public sealed record PayOsLinkResponse(string CheckoutUrl, long OrderCode, decimal Amount);
+public sealed record PayOsWebhookRequest(string code, string desc, bool success, PayOsWebhookData data, string signature);
+public sealed record PayOsWebhookData(
+    long orderCode,
+    int amount,
+    string description,
+    string accountNumber,
+    string reference,
+    string transactionDateTime,
+    string paymentLinkId,
+    string code,
+    string desc,
+    string counterAccountName,
+    string counterAccountNumber,
+    string counterAccountBankId,
+    string counterAccountBankName);

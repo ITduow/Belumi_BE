@@ -139,7 +139,7 @@ public static class BelumiSeedData
             Phone = "0900000000",
             PasswordHash = PasswordHasher.Hash("belumi2026"),
             Role = UserRole.Admin,
-            SubscriptionPlan = "Pro",
+            SubscriptionPlan = "Yearly",
             IsActive = true
         });
     }
@@ -155,6 +155,7 @@ public static class BelumiSeedData
             new SubscriptionPlan
             {
                 Name = "Free",
+                BillingCycle = "monthly",
                 Price = 0,
                 MonthlyAiLimit = 3,
                 IngredientLookupLimit = 5,
@@ -163,20 +164,22 @@ public static class BelumiSeedData
             },
             new SubscriptionPlan
             {
-                Name = "Plus",
-                Price = 99000,
-                MonthlyAiLimit = 50,
-                IngredientLookupLimit = 100,
-                MakeupConsultationLimit = 50,
+                Name = "Monthly",
+                BillingCycle = "monthly",
+                Price = 59000,
+                MonthlyAiLimit = 9999,
+                IngredientLookupLimit = 9999,
+                MakeupConsultationLimit = 9999,
                 CanUseAdvancedAnalysis = true
             },
             new SubscriptionPlan
             {
-                Name = "Pro",
-                Price = 199000,
-                MonthlyAiLimit = 200,
-                IngredientLookupLimit = 300,
-                MakeupConsultationLimit = 200,
+                Name = "Yearly",
+                BillingCycle = "yearly",
+                Price = 599000,
+                MonthlyAiLimit = 9999,
+                IngredientLookupLimit = 9999,
+                MakeupConsultationLimit = 9999,
                 CanUseAdvancedAnalysis = true
             });
     }

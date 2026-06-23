@@ -6,6 +6,7 @@ using Belumi.Infrastructure.Services;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using PayOS;
 
 namespace Belumi.Infrastructure;
 
@@ -43,6 +44,22 @@ public static class DependencyInjection
             }
         });
         services.AddSingleton<FirebaseAdminAppFactory>();
+        services.AddSingleton(provider =>
+        {
+            var config = provider.GetRequiredService<IConfiguration>();
+            var clientId = config["PayOS:ClientId"] ?? Environment.GetEnvironmentVariable("PAYOS_CLIENT_ID");
+            var apiKey = config["PayOS:ApiKey"] ?? Environment.GetEnvironmentVariable("PAYOS_API_KEY");
+            var checksumKey = config["PayOS:ChecksumKey"] ?? Environment.GetEnvironmentVariable("PAYOS_CHECKSUM_KEY");
+
+            if (string.IsNullOrWhiteSpace(clientId) || string.IsNullOrWhiteSpace(apiKey) || string.IsNullOrWhiteSpace(checksumKey))
+            {
+                clientId = "placeholder_id";
+                apiKey = "placeholder_key";
+                checksumKey = "placeholder_checksum";
+            }
+
+            return new PayOSClient(clientId, apiKey, checksumKey);
+        });
         services.AddMemoryCache();
         services.AddScoped<ChatbotRequestContext>();
         services.AddScoped<ChatToolCallTracker>();
