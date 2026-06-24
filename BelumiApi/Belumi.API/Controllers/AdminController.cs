@@ -85,6 +85,13 @@ public sealed class AdminController(BelumiDbContext db) : ControllerBase
         var prevConsultationsCount = await db.MakeupConsultations
             .CountAsync(x => x.CreatedAt >= prevStart && x.CreatedAt <= prevEnd, cancellationToken);
 
+        var currentArticles = await db.NewsArticles
+            .Where(x => x.CreatedAt >= currentStart)
+            .Select(x => new { x.CreatedAt })
+            .ToListAsync(cancellationToken);
+
+        int totalArticles = await db.NewsArticles.CountAsync(cancellationToken);
+
         decimal currentRevenue = currentPayments.Sum(x => x.Amount);
         decimal prevRevenue = prevPayments.Sum(x => x.Amount);
         double revenueGrowth = prevRevenue == 0 ? (currentRevenue > 0 ? 100 : 0) : (double)((currentRevenue - prevRevenue) / prevRevenue) * 100;
@@ -109,7 +116,11 @@ public sealed class AdminController(BelumiDbContext db) : ControllerBase
             TotalScans = currentScansCount,
             ScanGrowthPercent = Math.Round(scanGrowth, 1),
             ConversionRate = Math.Round(conversionRate, 1),
-            PremiumUsersCount = premiumUsers
+            PremiumUsersCount = premiumUsers,
+            TotalUsers = totalUsers,
+            PremiumPurchases = currentPayments.Count,
+            TotalArticles = totalArticles,
+            NewArticles = currentArticles.Count
         };
 
         var timeSeries = new List<TimeSeriesPointDto>();
@@ -126,8 +137,18 @@ public sealed class AdminController(BelumiDbContext db) : ControllerBase
                 int s = currentSkinAnalyses.Where(x => x.CreatedAt.Year == year).Count() +
                         currentLookups.Where(x => x.CreatedAt.Year == year).Count() +
                         currentConsultations.Where(x => x.CreatedAt.Year == year).Count();
+                int p = currentPayments.Where(x => x.CreatedAt.Year == year).Count();
+                int art = currentArticles.Where(x => x.CreatedAt.Year == year).Count();
                 
-                timeSeries.Add(new TimeSeriesPointDto { Label = label, Revenue = rev, NewUsers = u, Scans = s });
+                timeSeries.Add(new TimeSeriesPointDto 
+                { 
+                    Label = label, 
+                    Revenue = rev, 
+                    NewUsers = u, 
+                    Scans = s,
+                    PremiumPurchases = p,
+                    NewArticles = art
+                });
             }
         }
         else if (period == "monthly")
@@ -142,8 +163,18 @@ public sealed class AdminController(BelumiDbContext db) : ControllerBase
                 int s = currentSkinAnalyses.Where(x => x.CreatedAt.Year == targetMonth.Year && x.CreatedAt.Month == targetMonth.Month).Count() +
                         currentLookups.Where(x => x.CreatedAt.Year == targetMonth.Year && x.CreatedAt.Month == targetMonth.Month).Count() +
                         currentConsultations.Where(x => x.CreatedAt.Year == targetMonth.Year && x.CreatedAt.Month == targetMonth.Month).Count();
+                int p = currentPayments.Where(x => x.CreatedAt.Year == targetMonth.Year && x.CreatedAt.Month == targetMonth.Month).Count();
+                int art = currentArticles.Where(x => x.CreatedAt.Year == targetMonth.Year && x.CreatedAt.Month == targetMonth.Month).Count();
                 
-                timeSeries.Add(new TimeSeriesPointDto { Label = label, Revenue = rev, NewUsers = u, Scans = s });
+                timeSeries.Add(new TimeSeriesPointDto 
+                { 
+                    Label = label, 
+                    Revenue = rev, 
+                    NewUsers = u, 
+                    Scans = s,
+                    PremiumPurchases = p,
+                    NewArticles = art
+                });
             }
         }
         else
@@ -158,8 +189,18 @@ public sealed class AdminController(BelumiDbContext db) : ControllerBase
                 int s = currentSkinAnalyses.Where(x => x.CreatedAt.Date == targetDate.Date).Count() +
                         currentLookups.Where(x => x.CreatedAt.Date == targetDate.Date).Count() +
                         currentConsultations.Where(x => x.CreatedAt.Date == targetDate.Date).Count();
+                int p = currentPayments.Where(x => x.CreatedAt.Date == targetDate.Date).Count();
+                int art = currentArticles.Where(x => x.CreatedAt.Date == targetDate.Date).Count();
                 
-                timeSeries.Add(new TimeSeriesPointDto { Label = label, Revenue = rev, NewUsers = u, Scans = s });
+                timeSeries.Add(new TimeSeriesPointDto 
+                { 
+                    Label = label, 
+                    Revenue = rev, 
+                    NewUsers = u, 
+                    Scans = s,
+                    PremiumPurchases = p,
+                    NewArticles = art
+                });
             }
         }
 
