@@ -217,8 +217,88 @@ public sealed class CompatibilityEngine(BelumiDbContext db)
         _ => concern
     };
 
-    private static string NormalizeIngredientName(string name) =>
-        name.Trim().ToLowerInvariant().Replace("-", " ").Replace("_", " ");
+    private static string NormalizeIngredientName(string name)
+    {
+        var key = name.Trim().ToLowerInvariant().Replace("-", " ").Replace("_", " ");
+        // Resolve alias to canonical rule key
+        return Aliases.TryGetValue(key, out var canonical) ? canonical : key;
+    }
+
+    /// <summary>
+    /// Maps INCI / alternative names to canonical rule keys.
+    /// Covers cases where OCR output differs from common names.
+    /// </summary>
+    private static readonly Dictionary<string, string> Aliases = new(StringComparer.OrdinalIgnoreCase)
+    {
+        // Vitamin C variants
+        ["sodium ascorbyl phosphate"] = "vitamin c",
+        ["ascorbyl glucoside"] = "vitamin c",
+        ["ethyl ascorbic acid"] = "vitamin c",
+        ["ascorbyl tetraisopalmitate"] = "vitamin c",
+        ["magnesium ascorbyl phosphate"] = "vitamin c",
+        ["3 o ethyl ascorbic acid"] = "vitamin c",
+
+        // Hyaluronic Acid variants
+        ["sodium hyaluronate"] = "hyaluronic acid",
+        ["hydrolyzed hyaluronic acid"] = "hyaluronic acid",
+        ["ha"] = "hyaluronic acid",
+
+        // BHA
+        ["bha"] = "salicylic acid",
+        ["beta hydroxy acid"] = "salicylic acid",
+
+        // AHA
+        ["aha"] = "glycolic acid",
+        ["alpha hydroxy acid"] = "glycolic acid",
+
+        // PHA
+        ["pha"] = "lactic acid",
+        ["gluconolactone"] = "lactic acid",
+
+        // Centella variants
+        ["cica"] = "centella asiatica",
+        ["centella"] = "centella asiatica",
+        ["madecassoside"] = "centella asiatica",
+        ["asiaticoside"] = "centella asiatica",
+
+        // Retinoid variants
+        ["vitamin a"] = "retinol",
+        ["retinaldehyde"] = "retinal",
+        ["retinyl palmitate"] = "retinol",
+
+        // Panthenol variants
+        ["vitamin b5"] = "panthenol",
+        ["dexpanthenol"] = "panthenol",
+        ["d panthenol"] = "panthenol",
+
+        // Niacinamide variants
+        ["vitamin b3"] = "niacinamide",
+        ["nicotinamide"] = "niacinamide",
+
+        // Ceramide variants
+        ["ceramide ap"] = "ceramide",
+        ["ceramide eop"] = "ceramide",
+        ["ceramide ng"] = "ceramide",
+        ["ceramide ns"] = "ceramide",
+
+        // Fragrance variants
+        ["aroma"] = "fragrance",
+
+        // SLS variants
+        ["sodium laureth sulfate"] = "sodium lauryl sulfate",
+
+        // Vitamin E
+        ["vitamin e"] = "tocopherol",
+        ["tocopheryl acetate"] = "tocopherol",
+
+        // Tea Tree
+        ["melaleuca alternifolia leaf oil"] = "tea tree oil",
+        ["tea tree"] = "tea tree oil",
+
+        // Arbutin
+        ["arbutin"] = "alpha arbutin",
+        ["beta arbutin"] = "alpha arbutin",
+    };
 
     // ─────────────────────────────────────────────────────────────────
     // BE-2: Rule Mapping (Ingredient ↔ SkinType / Concern)
@@ -306,6 +386,13 @@ public sealed class CompatibilityEngine(BelumiDbContext db)
             AvoidForSkinType: [SkinTypes.Sensitive],
             AvoidForConcern: [],
             AvoidIfSensitive: true
+        ),
+        ["tranexamic acid"] = new(
+            "Giảm thâm nám, ức chế sản sinh melanin. Phổ biến trong skincare Việt.",
+            GoodForSkinType: [SkinTypes.Normal, SkinTypes.Combination, SkinTypes.Oily, SkinTypes.Sensitive],
+            GoodForConcern: [SkinConcerns.DarkSpots, SkinConcerns.Redness],
+            AvoidForSkinType: [],
+            AvoidForConcern: []
         ),
 
         // ── Hydration & Barrier Repair ──

@@ -71,7 +71,6 @@ public sealed record EnhancedIngredientScanResult(
 );
 
 public sealed record CompatibilityData(
-    int Score,
     string Status,
     IReadOnlyCollection<CompatibilityIngredientItem> Beneficial,
     IReadOnlyCollection<CompatibilityIngredientItem> Harmful,

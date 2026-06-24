@@ -158,32 +158,71 @@ public sealed class IngredientController(IAiBeautyService aiBeautyService, Belum
     public ActionResult<IngredientLookupResult> Lookup(IngredientLookupRequest request) =>
         Ok(aiBeautyService.LookupIngredients(request));
 
+    /// <summary>
+    /// Self-contained Scan endpoint:
+    /// 1. AiBeautyService → Safety analysis (general)
+    /// 2. CompatibilityEngine → Personalized compatibility (if user is authenticated + has skin profile)
+    /// No coupling with AI Layer beyond safety scoring.
+    /// </summary>
     [HttpPost("scan")]
-    public ActionResult<IngredientScanResult> Scan(IngredientScanRequest request) =>
-        Ok(aiBeautyService.AnalyzeIngredientLabel(request));
+    public async Task<ActionResult<EnhancedIngredientScanResult>> Scan(
+        IngredientScanRequest request, CancellationToken cancellationToken)
+    {
+        // Step 1: Safety analysis (AI Layer — existing logic)
+        var safetyResult = aiBeautyService.AnalyzeIngredientLabel(request);
+
+        // Step 2: Compatibility (Decision Layer — Rule Engine via DB)
+        CompatibilityData? compatibility = null;
+        if (User.Identity?.IsAuthenticated == true)
+        {
+            var userId = User.GetUserId();
+            var profile = await compatibilityEngine.GetSkinProfileAsync(userId, cancellationToken);
+            if (profile is not null)
+            {
+                var ingredientNames = (request.RawTextOrImageUrl ?? "")
+                    .Split(['\n', ',', ';'])
+                    .Select(x => x.Trim())
+                    .Where(x => !string.IsNullOrWhiteSpace(x))
+                    .ToList();
+
+                var compResult = compatibilityEngine.Evaluate(ingredientNames, profile);
+                compatibility = new CompatibilityData(
+                    compResult.Status,
+                    compResult.Beneficial.Select(x => new CompatibilityIngredientItem(x.Name, x.Reason, x.PersonalReason)).ToList(),
+                    compResult.Harmful.Select(x => new CompatibilityIngredientItem(x.Name, x.Reason, x.PersonalReason)).ToList(),
+                    compResult.Neutral.Select(x => new CompatibilityIngredientItem(x.Name, x.Reason, x.PersonalReason)).ToList()
+                );
+            }
+        }
+
+        return Ok(new EnhancedIngredientScanResult(
+            safetyResult.SafetyScore,
+            safetyResult.Status,
+            safetyResult.Summary,
+            safetyResult.Beneficial,
+            safetyResult.Neutral,
+            safetyResult.Harmful,
+            safetyResult.Recommendations,
+            compatibility
+        ));
+    }
 
     [HttpPost("analyze-text")]
     [Authorize]
-    public async Task<ActionResult<EnhancedIngredientScanResult>> AnalyzeText(IngredientAnalyzeTextRequest request, CancellationToken cancellationToken)
+    public async Task<ActionResult<IngredientScanResult>> AnalyzeText(IngredientAnalyzeTextRequest request, CancellationToken cancellationToken)
     {
         var result = aiBeautyService.AnalyzeIngredientLabel(new IngredientScanRequest(request.InputText, request.SkinType, request.Allergies));
-        var userId = request.UserId == Guid.Empty ? User.GetUserId() : request.UserId;
-        await SaveLookupAsync(userId, request.InputText, null, result, cancellationToken);
-
-        var enhanced = await BuildEnhancedResultAsync(result, userId, request.InputText, cancellationToken);
-        return Ok(enhanced);
+        await SaveLookupAsync(request.UserId == Guid.Empty ? User.GetUserId() : request.UserId, request.InputText, null, result, cancellationToken);
+        return Ok(result);
     }
 
     [HttpPost("analyze-image")]
     [Authorize]
-    public async Task<ActionResult<EnhancedIngredientScanResult>> AnalyzeImage(IngredientAnalyzeImageRequest request, CancellationToken cancellationToken)
+    public async Task<ActionResult<IngredientScanResult>> AnalyzeImage(IngredientAnalyzeImageRequest request, CancellationToken cancellationToken)
     {
         var result = aiBeautyService.AnalyzeIngredientLabel(new IngredientScanRequest(request.ImageUrl, request.SkinType, request.Allergies));
-        var userId = request.UserId == Guid.Empty ? User.GetUserId() : request.UserId;
-        await SaveLookupAsync(userId, request.OcrText ?? request.ImageUrl, request.ImageUrl, result, cancellationToken);
-
-        var enhanced = await BuildEnhancedResultAsync(result, userId, request.OcrText ?? request.ImageUrl, cancellationToken);
-        return Ok(enhanced);
+        await SaveLookupAsync(request.UserId == Guid.Empty ? User.GetUserId() : request.UserId, request.OcrText ?? request.ImageUrl, request.ImageUrl, result, cancellationToken);
+        return Ok(result);
     }
 
     [HttpGet("history/{userId:guid}")]
@@ -223,46 +262,6 @@ public sealed class IngredientController(IAiBeautyService aiBeautyService, Belum
             ResponseData = JsonSerializer.Serialize(result)
         });
         await db.SaveChangesAsync(cancellationToken);
-    }
-
-    /// <summary>
-    /// Builds an enhanced scan result by appending compatibility data from the Rule Engine.
-    /// </summary>
-    private async Task<EnhancedIngredientScanResult> BuildEnhancedResultAsync(
-        IngredientScanResult safetyResult, Guid userId, string rawInput, CancellationToken ct)
-    {
-        CompatibilityData? compatibility = null;
-
-        var profile = await compatibilityEngine.GetSkinProfileAsync(userId, ct);
-        if (profile is not null)
-        {
-            // Extract ingredient names from the raw input text
-            var ingredientNames = rawInput
-                .Split(['\n', ',', ';'])
-                .Select(x => x.Trim())
-                .Where(x => !string.IsNullOrWhiteSpace(x))
-                .ToList();
-
-            var compResult = compatibilityEngine.Evaluate(ingredientNames, profile);
-            compatibility = new CompatibilityData(
-                compResult.Score,
-                compResult.Status,
-                compResult.Beneficial.Select(x => new CompatibilityIngredientItem(x.Name, x.Reason, x.PersonalReason)).ToList(),
-                compResult.Harmful.Select(x => new CompatibilityIngredientItem(x.Name, x.Reason, x.PersonalReason)).ToList(),
-                compResult.Neutral.Select(x => new CompatibilityIngredientItem(x.Name, x.Reason, x.PersonalReason)).ToList()
-            );
-        }
-
-        return new EnhancedIngredientScanResult(
-            safetyResult.SafetyScore,
-            safetyResult.Status,
-            safetyResult.Summary,
-            safetyResult.Beneficial,
-            safetyResult.Neutral,
-            safetyResult.Harmful,
-            safetyResult.Recommendations,
-            compatibility
-        );
     }
 
     private static IngredientDto ToDto(Ingredient ingredient) =>
