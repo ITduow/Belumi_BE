@@ -246,6 +246,110 @@ public sealed class IngredientController(IAiBeautyService aiBeautyService, Belum
             .ToListAsync(cancellationToken));
     }
 
+    [HttpGet("evaluation/dashboard")]
+    public async Task<ActionResult> GetEvaluationDashboard(CancellationToken cancellationToken)
+    {
+        // 1. Static Metrics
+        var dbIngredients = await db.Ingredients.AsNoTracking().Select(x => x.NameInc).ToListAsync(cancellationToken);
+        var dbAnalysis = compatibilityEngine.AnalyzeList(dbIngredients);
+        double ruleCoverageRate = dbIngredients.Count == 0 ? 0.0 : (double)dbAnalysis.MatchedIngredients / dbIngredients.Count * 100;
+
+        // 2. Controlled Metrics (Golden Dataset)
+        double goldenMatchRate = 0.0;
+        int goldenProductCount = 0;
+        int goldenTotal = 0;
+        int goldenMatched = 0;
+        try
+        {
+            var path = Path.Combine(AppContext.BaseDirectory, "Regression", "TestData", "golden_dataset_v1.json");
+            if (System.IO.File.Exists(path))
+            {
+                var json = await System.IO.File.ReadAllTextAsync(path, cancellationToken);
+                var doc = JsonSerializer.Deserialize<LocalGoldenDataset>(json, new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
+                if (doc?.Products != null)
+                {
+                    goldenProductCount = doc.Products.Count;
+                    foreach (var product in doc.Products)
+                    {
+                        var profile = new NormalizedSkinProfile(product.Profile.SkinType, product.Profile.Concerns ?? [], product.Profile.Sensitivity ?? "low", DateTime.UtcNow, false);
+                        var result = compatibilityEngine.Evaluate(product.Ingredients, profile);
+                        goldenTotal += product.Ingredients.Count;
+                        goldenMatched += result.Beneficial.Count + result.Harmful.Count;
+                    }
+                    goldenMatchRate = goldenTotal == 0 ? 0.0 : (double)goldenMatched / goldenTotal * 100;
+                }
+            }
+        }
+        catch
+        {
+            // fallback if dataset v1 file not found
+        }
+
+        // 3. Behavioral Metrics
+        var lookups = await db.IngredientLookups.AsNoTracking()
+            .OrderByDescending(x => x.CreatedAt)
+            .Take(100) // inspect last 100 searches
+            .Select(x => x.InputText)
+            .ToListAsync(cancellationToken);
+
+        var missCounts = new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase);
+        foreach (var text in lookups)
+        {
+            var parts = text.Split(new[] { '\n', ',', ';' }, StringSplitOptions.RemoveEmptyEntries)
+                .Select(x => x.Trim())
+                .Where(x => !string.IsNullOrWhiteSpace(x));
+            
+            var listAnalysis = compatibilityEngine.AnalyzeList(parts);
+            foreach (var rawName in listAnalysis.MissedIngredients)
+            {
+                var key = rawName.ToLowerInvariant();
+                missCounts[key] = missCounts.GetValueOrDefault(key) + 1;
+            }
+        }
+
+        var topMissed = missCounts.OrderByDescending(x => x.Value)
+            .Take(10)
+            .Select(x => new { Ingredient = x.Key, Frequency = x.Value })
+            .ToList();
+
+        return Ok(new
+        {
+            staticMetrics = new
+            {
+                totalIngredientsInDb = dbIngredients.Count,
+                matchedIngredientsInDb = dbAnalysis.MatchedIngredients,
+                ruleCoverageRate = Math.Round(ruleCoverageRate, 2)
+            },
+            controlledMetrics = new
+            {
+                goldenDatasetProductCount = goldenProductCount,
+                goldenDatasetMatchRate = Math.Round(goldenMatchRate, 2)
+            },
+            behavioralMetrics = new
+            {
+                topMissedIngredients = topMissed
+            }
+        });
+    }
+
+    private sealed class LocalGoldenDataset
+    {
+        public List<LocalGoldenProduct> Products { get; set; } = [];
+    }
+
+    private sealed class LocalGoldenProduct
+    {
+        public LocalGoldenProfile Profile { get; set; } = new();
+        public List<string> Ingredients { get; set; } = [];
+    }
+
+    private sealed class LocalGoldenProfile
+    {
+        public string SkinType { get; set; } = "normal";
+        public List<string>? Concerns { get; set; }
+        public string? Sensitivity { get; set; }
+    }
+
     private async Task SaveLookupAsync(Guid userId, string input, string? imageUrl, IngredientScanResult result, CancellationToken cancellationToken)
     {
         db.IngredientLookups.Add(new IngredientLookup

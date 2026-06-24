@@ -14,12 +14,18 @@ namespace Belumi.Tests;
 public sealed class GoldenDatasetTests
 {
     private readonly CompatibilityEngine _engine = new(null!, NullLogger<CompatibilityEngine>.Instance);
+    private readonly Xunit.Abstractions.ITestOutputHelper _output;
+
+    public GoldenDatasetTests(Xunit.Abstractions.ITestOutputHelper output)
+    {
+        _output = output;
+    }
 
     private const double BaselineMatchRate = 57.7;
 
     private static readonly Lazy<List<GoldenProduct>> _products = new(() =>
     {
-        var path = Path.Combine(AppContext.BaseDirectory, "Regression", "TestData", "golden_dataset.json");
+        var path = Path.Combine(AppContext.BaseDirectory, "Regression", "TestData", "golden_dataset_v1.json");
         var json = File.ReadAllText(path);
         var doc = JsonSerializer.Deserialize<GoldenDataset>(json, new JsonSerializerOptions
         {
@@ -38,6 +44,7 @@ public sealed class GoldenDatasetTests
     public void AllExpectedBeneficial_AreClassifiedBeneficial()
     {
         var failures = new List<string>();
+        int verifiedCount = 0;
 
         foreach (var product in Products)
         {
@@ -55,11 +62,16 @@ public sealed class GoldenDatasetTests
                     var actual = FindActualCategory(result, expected);
                     failures.Add($"[{product.Name}] '{expected}' expected BENEFICIAL but got {actual}");
                 }
+                else
+                {
+                    verifiedCount++;
+                }
             }
         }
 
+        _output.WriteLine($"[INFO] Đã xác thực thành công {verifiedCount} hoạt chất Beneficial chuẩn y khoa.");
         Assert.True(failures.Count == 0,
-            $"Beneficial regression detected:\n{string.Join("\n", failures)}");
+            $"[ERROR] Beneficial regression detected:\n{string.Join("\n", failures)}");
     }
 
     // ─────────────────────────────────────────────────────────────────
@@ -70,6 +82,7 @@ public sealed class GoldenDatasetTests
     public void AllExpectedHarmful_AreClassifiedHarmful()
     {
         var failures = new List<string>();
+        int verifiedCount = 0;
 
         foreach (var product in Products)
         {
@@ -87,11 +100,16 @@ public sealed class GoldenDatasetTests
                     var actual = FindActualCategory(result, expected);
                     failures.Add($"[{product.Name}] '{expected}' expected HARMFUL but got {actual}");
                 }
+                else
+                {
+                    verifiedCount++;
+                }
             }
         }
 
+        _output.WriteLine($"[INFO] Đã xác thực thành công {verifiedCount} hoạt chất Harmful chuẩn y khoa.");
         Assert.True(failures.Count == 0,
-            $"Harmful regression detected:\n{string.Join("\n", failures)}");
+            $"[ERROR] Harmful regression detected:\n{string.Join("\n", failures)}");
     }
 
     // ─────────────────────────────────────────────────────────────────
@@ -102,6 +120,7 @@ public sealed class GoldenDatasetTests
     public void MustNotBe_ConstraintsAreRespected()
     {
         var failures = new List<string>();
+        int verifiedCount = 0;
 
         foreach (var product in Products)
         {
@@ -118,11 +137,16 @@ public sealed class GoldenDatasetTests
                 {
                     failures.Add($"[{product.Name}] '{ingredientName}' MUST NOT BE {forbiddenCategory} but IS {actual}");
                 }
+                else
+                {
+                    verifiedCount++;
+                }
             }
         }
 
+        _output.WriteLine($"[INFO] Đã xác thực thành công {verifiedCount} ràng buộc an toàn MustNotBe.");
         Assert.True(failures.Count == 0,
-            $"MustNotBe violation detected:\n{string.Join("\n", failures)}");
+            $"[ERROR] MustNotBe violation detected:\n{string.Join("\n", failures)}");
     }
 
     // ─────────────────────────────────────────────────────────────────
@@ -145,12 +169,23 @@ public sealed class GoldenDatasetTests
         }
 
         var matchRate = totalIngredients == 0 ? 0 : (double)matchedIngredients / totalIngredients * 100;
+        var diff = BaselineMatchRate - matchRate;
 
-        // CI gate: Fail only if match rate drops > 10% compared to the baseline (57.7% - 10.0% = 47.7%)
-        double allowedThreshold = BaselineMatchRate - 10.0;
-        Assert.True(matchRate >= allowedThreshold,
-            $"Match rate {matchRate:F1}% dropped below threshold {allowedThreshold:F1}% (Baseline: {BaselineMatchRate:F1}% - 10%). " +
-            $"Matched: {matchedIngredients}/{totalIngredients}");
+        if (diff > 3.0)
+        {
+            // 🔴 ERROR (FAIL CI): Sụt giảm nghiêm trọng (>3% absolute)
+            Assert.Fail($"[ERROR] Match rate sụt giảm nghiêm trọng: {matchRate:F1}% vs Baseline: {BaselineMatchRate:F1}% (Giảm {diff:F1}% > 3%). Matched: {matchedIngredients}/{totalIngredients}");
+        }
+        else if (diff > 0.0)
+        {
+            // 🟡 WARN: Sụt giảm nhẹ (0.5% - 3%)
+            _output.WriteLine($"[WARN] Phát hiện dịch chuyển nhẹ (Soft Drift): Match rate {matchRate:F1}% vs Baseline: {BaselineMatchRate:F1}% (Giảm {diff:F1}%). Matched: {matchedIngredients}/{totalIngredients}");
+        }
+        else
+        {
+            // 🟢 INFO: Giữ vững hoặc tăng match rate
+            _output.WriteLine($"[INFO] Match rate tối ưu: {matchRate:F1}% vs Baseline: {BaselineMatchRate:F1}% (Tăng/Đạt {Math.Abs(diff):F1}%). Matched: {matchedIngredients}/{totalIngredients}");
+        }
     }
 
     // ─────────────────────────────────────────────────────────────────

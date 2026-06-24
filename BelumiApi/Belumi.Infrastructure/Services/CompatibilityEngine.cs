@@ -14,6 +14,43 @@ namespace Belumi.Infrastructure.Services;
 /// </summary>
 public sealed class CompatibilityEngine(BelumiDbContext db, ILogger<CompatibilityEngine> logger)
 {
+    public bool HasRule(string ingredientName)
+    {
+        if (string.IsNullOrWhiteSpace(ingredientName)) return false;
+        var key = NormalizeIngredientName(ingredientName);
+        return Rules.ContainsKey(key);
+    }
+
+    public CompatibilityAnalysis AnalyzeList(IEnumerable<string> ingredients)
+    {
+        var totalList = ingredients
+            .Select(x => x.Trim())
+            .Where(x => !string.IsNullOrWhiteSpace(x))
+            .ToList();
+
+        int matchedCount = 0;
+        var missed = new List<string>();
+
+        foreach (var rawName in totalList)
+        {
+            var key = NormalizeIngredientName(rawName);
+            if (Rules.ContainsKey(key))
+            {
+                matchedCount++;
+            }
+            else
+            {
+                missed.Add(rawName);
+            }
+        }
+
+        return new CompatibilityAnalysis(
+            TotalIngredients: totalList.Count,
+            MatchedIngredients: matchedCount,
+            MissedIngredients: missed
+        );
+    }
+
     // ─────────────────────────────────────────────────────────────────
     // BE-1: Get Latest Skin Profile
     // ─────────────────────────────────────────────────────────────────

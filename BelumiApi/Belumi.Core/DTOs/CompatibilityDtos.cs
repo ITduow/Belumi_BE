@@ -47,3 +47,9 @@ public sealed record IngredientGeneralInfo(
     List<string> GoodFor,
     List<string> AvoidFor
 );
+
+public sealed record CompatibilityAnalysis(
+    int TotalIngredients,
+    int MatchedIngredients,
+    List<string> MissedIngredients
+);
