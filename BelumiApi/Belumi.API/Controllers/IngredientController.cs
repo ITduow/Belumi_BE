@@ -74,7 +74,7 @@ public sealed class IngredientController(IAiBeautyService aiBeautyService, Belum
             if (profile is not null)
             {
                 var result = compatibilityEngine.EvaluateSingle(ingredient.NameInc, profile);
-                assessment = new PersonalizedAssessmentData(result.Status, result.Reasons);
+                assessment = new PersonalizedAssessmentData(result.Status, profile.IsStale, result.Reasons);
             }
         }
 
@@ -193,6 +193,7 @@ public sealed class IngredientController(IAiBeautyService aiBeautyService, Belum
                 var compResult = compatibilityEngine.Evaluate(ingredientNames, profile);
                 compatibility = new CompatibilityData(
                     compResult.Status,
+                    profile.IsStale,
                     compResult.Beneficial.Select(x => new CompatibilityIngredientItem(x.Name, x.Reason, x.PersonalReason)).ToList(),
                     compResult.Harmful.Select(x => new CompatibilityIngredientItem(x.Name, x.Reason, x.PersonalReason)).ToList(),
                     compResult.Neutral.Select(x => new CompatibilityIngredientItem(x.Name, x.Reason, x.PersonalReason)).ToList()

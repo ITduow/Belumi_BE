@@ -72,6 +72,7 @@ public sealed record EnhancedIngredientScanResult(
 
 public sealed record CompatibilityData(
     string Status,
+    bool ProfileIsStale,
     IReadOnlyCollection<CompatibilityIngredientItem> Beneficial,
     IReadOnlyCollection<CompatibilityIngredientItem> Harmful,
     IReadOnlyCollection<CompatibilityIngredientItem> Neutral
@@ -102,5 +103,6 @@ public sealed record EnhancedIngredientDto(
 
 public sealed record PersonalizedAssessmentData(
     string Status,
+    bool ProfileIsStale,
     IReadOnlyCollection<string> Reasons
 );

@@ -7,7 +7,9 @@ namespace Belumi.Core.DTOs;
 public sealed record NormalizedSkinProfile(
     string SkinType,
     List<string> Concerns,
-    string Sensitivity
+    string Sensitivity,
+    DateTime LastAnalyzedAt,
+    bool IsStale
 );
 
 // ─────────────────────────────────────────────────────────────────────

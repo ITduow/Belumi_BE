@@ -34,10 +34,15 @@ public sealed class CompatibilityEngine(BelumiDbContext db)
 
         if (latest is null) return null;
 
+        var analyzedAt = latest.AnalyzedAt;
+        var isStale = (DateTime.UtcNow - analyzedAt).TotalDays > 90;
+
         return new NormalizedSkinProfile(
             SkinType: SkinTypes.Normalize(latest.SkinType),
             Concerns: SkinConcerns.Parse(latest.Concerns),
-            Sensitivity: SensitivityLevels.Normalize(latest.SensitivityLevel)
+            Sensitivity: SensitivityLevels.Normalize(latest.SensitivityLevel),
+            LastAnalyzedAt: analyzedAt,
+            IsStale: isStale
         );
     }
 
