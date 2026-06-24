@@ -26,7 +26,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <Content Include="TestData\**\*.json" CopyToOutputDirectory="PreserveNewest" />
+    <Content Include="Regression\TestData\**\*.json" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
 
 </Project>

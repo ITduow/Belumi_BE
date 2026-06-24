@@ -15,9 +15,11 @@ public sealed class GoldenDatasetTests
 {
     private readonly CompatibilityEngine _engine = new(null!, NullLogger<CompatibilityEngine>.Instance);
 
+    private const double BaselineMatchRate = 57.7;
+
     private static readonly Lazy<List<GoldenProduct>> _products = new(() =>
     {
-        var path = Path.Combine(AppContext.BaseDirectory, "TestData", "golden_dataset.json");
+        var path = Path.Combine(AppContext.BaseDirectory, "Regression", "TestData", "golden_dataset.json");
         var json = File.ReadAllText(path);
         var doc = JsonSerializer.Deserialize<GoldenDataset>(json, new JsonSerializerOptions
         {
@@ -140,14 +142,14 @@ public sealed class GoldenDatasetTests
 
             totalIngredients += product.Ingredients.Count;
             matchedIngredients += result.Beneficial.Count + result.Harmful.Count;
-            // Neutral with explicit rule = still matched, but we count beneficial+harmful as "meaningful match"
         }
 
         var matchRate = totalIngredients == 0 ? 0 : (double)matchedIngredients / totalIngredients * 100;
 
-        // Gate: at least 40% of ingredients across golden dataset should have meaningful rules
-        Assert.True(matchRate >= 40,
-            $"Match rate {matchRate:F1}% is below minimum threshold of 40%. " +
+        // CI gate: Fail only if match rate drops > 10% compared to the baseline (57.7% - 10.0% = 47.7%)
+        double allowedThreshold = BaselineMatchRate - 10.0;
+        Assert.True(matchRate >= allowedThreshold,
+            $"Match rate {matchRate:F1}% dropped below threshold {allowedThreshold:F1}% (Baseline: {BaselineMatchRate:F1}% - 10%). " +
             $"Matched: {matchedIngredients}/{totalIngredients}");
     }
 
