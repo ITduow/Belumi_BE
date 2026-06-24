@@ -25,4 +25,8 @@
     <ProjectReference Include="..\Belumi.Infrastructure\Belumi.Infrastructure.csproj" />
   </ItemGroup>
 
+  <ItemGroup>
+    <Content Include="TestData\**\*.json" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+
 </Project>

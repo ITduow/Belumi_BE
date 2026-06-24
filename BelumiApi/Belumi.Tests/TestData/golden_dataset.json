@@ -1,0 +1,183 @@
+{
+  "description": "Golden dataset for Compatibility Engine regression testing. Each entry represents a known-good classification that must not change after rule/alias modifications.",
+  "version": "1.0",
+  "products": [
+    {
+      "name": "CeraVe Moisturizing Cream",
+      "profile": { "skinType": "dry", "concerns": ["dehydration"], "sensitivity": "high" },
+      "ingredients": ["Ceramide NP", "Ceramide AP", "Hyaluronic Acid", "Niacinamide", "Cholesterol"],
+      "expected": {
+        "beneficial": ["Ceramide NP", "Ceramide AP", "Hyaluronic Acid"],
+        "harmful": [],
+        "mustNotBe": { "Niacinamide": "harmful" }
+      }
+    },
+    {
+      "name": "Some By Mi AHA/BHA/PHA Toner",
+      "profile": { "skinType": "oily", "concerns": ["acne", "enlarged_pores"], "sensitivity": "low" },
+      "ingredients": ["Salicylic Acid", "Glycolic Acid", "Niacinamide", "Tea Tree Oil", "Fragrance"],
+      "expected": {
+        "beneficial": ["Salicylic Acid", "Niacinamide", "Tea Tree Oil"],
+        "harmful": [],
+        "mustNotBe": { "Fragrance": "beneficial" }
+      }
+    },
+    {
+      "name": "The Ordinary Retinol 0.5% in Squalane",
+      "profile": { "skinType": "sensitive", "concerns": ["redness"], "sensitivity": "high" },
+      "ingredients": ["Retinol", "Squalane", "Fragrance"],
+      "expected": {
+        "beneficial": [],
+        "harmful": ["Retinol", "Fragrance"],
+        "mustNotBe": { "Retinol": "beneficial" }
+      }
+    },
+    {
+      "name": "COSRX Snail Mucin Essence",
+      "profile": { "skinType": "dry", "concerns": ["dehydration"], "sensitivity": "low" },
+      "ingredients": ["Sodium Hyaluronate", "Panthenol", "Allantoin", "Snail Secretion Filtrate"],
+      "expected": {
+        "beneficial": ["Sodium Hyaluronate", "Panthenol", "Allantoin"],
+        "harmful": [],
+        "mustNotBe": {}
+      },
+      "normalization": [
+        { "raw": "Sodium Hyaluronate", "expectedRule": "hyaluronic acid", "matchType": "alias" }
+      ]
+    },
+    {
+      "name": "Skin1004 Centella Ampoule",
+      "profile": { "skinType": "sensitive", "concerns": ["redness"], "sensitivity": "high" },
+      "ingredients": ["Centella Asiatica Leaf Extract", "Madecassoside", "Asiaticoside"],
+      "expected": {
+        "beneficial": ["Centella Asiatica Leaf Extract", "Madecassoside", "Asiaticoside"],
+        "harmful": [],
+        "mustNotBe": {}
+      },
+      "normalization": [
+        { "raw": "Centella Asiatica Leaf Extract", "expectedRule": "centella asiatica", "matchType": "contains" },
+        { "raw": "Madecassoside", "expectedRule": "centella asiatica", "matchType": "alias" }
+      ]
+    },
+    {
+      "name": "Fragrance-Heavy Product (edge case)",
+      "profile": { "skinType": "sensitive", "concerns": ["redness"], "sensitivity": "high" },
+      "ingredients": ["Parfum", "Alcohol Denat", "Menthol", "SLS"],
+      "expected": {
+        "beneficial": [],
+        "harmful": ["Parfum", "Alcohol Denat", "Menthol", "SLS"],
+        "mustNotBe": { "Parfum": "beneficial", "Alcohol Denat": "beneficial" }
+      },
+      "normalization": [
+        { "raw": "Parfum", "expectedRule": "fragrance", "matchType": "contains" }
+      ]
+    },
+    {
+      "name": "Eucerin Anti-Pigment (VN popular)",
+      "profile": { "skinType": "combination", "concerns": ["dark_spots"], "sensitivity": "low" },
+      "ingredients": ["Tranexamic Acid", "Niacinamide", "Glycerin"],
+      "expected": {
+        "beneficial": ["Tranexamic Acid", "Niacinamide"],
+        "harmful": [],
+        "mustNotBe": {}
+      }
+    },
+    {
+      "name": "Melano CC Serum (alias test)",
+      "profile": { "skinType": "normal", "concerns": ["dark_spots"], "sensitivity": "low" },
+      "ingredients": ["Ascorbyl Tetraisopalmitate", "Tocopheryl Acetate", "Glycerin"],
+      "expected": {
+        "beneficial": ["Ascorbyl Tetraisopalmitate"],
+        "harmful": [],
+        "mustNotBe": { "Tocopheryl Acetate": "harmful" }
+      },
+      "normalization": [
+        { "raw": "Ascorbyl Tetraisopalmitate", "expectedRule": "vitamin c", "matchType": "alias" },
+        { "raw": "Tocopheryl Acetate", "expectedRule": "tocopherol", "matchType": "alias" }
+      ],
+      "comment": "Tocopherol is explicitly neutral (general antioxidant) — not skin-type specific"
+    },
+    {
+      "name": "Coconut Oil Product (oily skin edge case)",
+      "profile": { "skinType": "oily", "concerns": ["acne"], "sensitivity": "low" },
+      "ingredients": ["Coconut Oil", "Shea Butter", "Cocoa Butter"],
+      "expected": {
+        "beneficial": [],
+        "harmful": ["Coconut Oil"],
+        "mustNotBe": { "Coconut Oil": "beneficial" }
+      }
+    },
+    {
+      "name": "Water-only (neutral baseline)",
+      "profile": { "skinType": "normal", "concerns": [], "sensitivity": "low" },
+      "ingredients": ["Water", "Glycerin", "Dimethicone", "Carbomer"],
+      "expected": {
+        "beneficial": [],
+        "harmful": [],
+        "mustNotBe": {}
+      },
+      "comment": "All ingredients should be neutral for normal skin with no concerns"
+    },
+    {
+      "name": "Beauty of Joseon Glow Serum (alias test)",
+      "profile": { "skinType": "oily", "concerns": ["dark_spots", "acne"], "sensitivity": "low" },
+      "ingredients": ["Niacinamide", "Arbutin", "Glycerin"],
+      "expected": {
+        "beneficial": ["Niacinamide", "Arbutin"],
+        "harmful": [],
+        "mustNotBe": {}
+      },
+      "normalization": [
+        { "raw": "Arbutin", "expectedRule": "alpha arbutin", "matchType": "alias" }
+      ]
+    },
+    {
+      "name": "Paula's Choice 2% BHA",
+      "profile": { "skinType": "oily", "concerns": ["acne", "enlarged_pores"], "sensitivity": "low" },
+      "ingredients": ["Salicylic Acid", "Glycerin", "Methylpropanediol"],
+      "expected": {
+        "beneficial": ["Salicylic Acid"],
+        "harmful": [],
+        "mustNotBe": {}
+      }
+    },
+    {
+      "name": "Silicone-Heavy Primer (edge case)",
+      "profile": { "skinType": "oily", "concerns": ["enlarged_pores"], "sensitivity": "low" },
+      "ingredients": ["Dimethicone", "Cyclopentasiloxane", "Dimethicone Crosspolymer", "PEG-10 Dimethicone"],
+      "expected": {
+        "beneficial": [],
+        "harmful": [],
+        "mustNotBe": {}
+      },
+      "comment": "All silicones should be neutral/miss — no false matches"
+    },
+    {
+      "name": "Vitamin B3 alias verification",
+      "profile": { "skinType": "oily", "concerns": ["acne"], "sensitivity": "low" },
+      "ingredients": ["Vitamin B3"],
+      "expected": {
+        "beneficial": ["Vitamin B3"],
+        "harmful": [],
+        "mustNotBe": {}
+      },
+      "normalization": [
+        { "raw": "Vitamin B3", "expectedRule": "niacinamide", "matchType": "alias" }
+      ]
+    },
+    {
+      "name": "La Roche-Posay Hyalu B5 Serum",
+      "profile": { "skinType": "sensitive", "concerns": ["redness", "dehydration"], "sensitivity": "high" },
+      "ingredients": ["Hyaluronic Acid", "Panthenol", "Madecassoside", "Vitamin B5"],
+      "expected": {
+        "beneficial": ["Hyaluronic Acid", "Panthenol", "Madecassoside", "Vitamin B5"],
+        "harmful": [],
+        "mustNotBe": {}
+      },
+      "normalization": [
+        { "raw": "Madecassoside", "expectedRule": "centella asiatica", "matchType": "alias" },
+        { "raw": "Vitamin B5", "expectedRule": "panthenol", "matchType": "alias" }
+      ]
+    }
+  ]
+}
