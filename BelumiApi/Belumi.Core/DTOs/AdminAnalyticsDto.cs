@@ -21,6 +21,10 @@ public sealed class TotalOverviewDto
     public double ScanGrowthPercent { get; set; }
     public double ConversionRate { get; set; }
     public int PremiumUsersCount { get; set; }
+    public int TotalUsers { get; set; }
+    public int PremiumPurchases { get; set; }
+    public int TotalArticles { get; set; }
+    public int NewArticles { get; set; }
 }
 
 public sealed class TimeSeriesPointDto
@@ -29,6 +33,8 @@ public sealed class TimeSeriesPointDto
     public decimal Revenue { get; set; }
     public int NewUsers { get; set; }
     public int Scans { get; set; }
+    public int PremiumPurchases { get; set; }
+    public int NewArticles { get; set; }
 }
 
 public sealed class DistributionDto
