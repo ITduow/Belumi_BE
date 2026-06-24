@@ -1,6 +1,7 @@
 using Belumi.Core;
 using Belumi.Core.DTOs;
 using Belumi.Infrastructure.Services;
+using Microsoft.Extensions.Logging.Abstractions;
 
 namespace Belumi.Tests;
 
@@ -11,7 +12,7 @@ namespace Belumi.Tests;
 public sealed class CompatibilityEngineTests
 {
     // Pass null for DbContext since pure methods don't hit DB
-    private readonly CompatibilityEngine _engine = new(null!);
+    private readonly CompatibilityEngine _engine = new(null!, NullLogger<CompatibilityEngine>.Instance);
 
     // ─────────────────────────────────────────────────────────────────
     // Helper: Create standard skin profiles

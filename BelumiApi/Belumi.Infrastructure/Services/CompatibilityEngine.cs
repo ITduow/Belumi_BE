@@ -3,6 +3,7 @@ using Belumi.Core.DTOs;
 using Belumi.Core.Entities;
 using Belumi.Infrastructure.Data;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging;
 
 namespace Belumi.Infrastructure.Services;
 
@@ -11,7 +12,7 @@ namespace Belumi.Infrastructure.Services;
 /// Matches ingredient lists against a user's Skin Profile to produce
 /// a Compatibility Score and personalized ingredient grouping.
 /// </summary>
-public sealed class CompatibilityEngine(BelumiDbContext db)
+public sealed class CompatibilityEngine(BelumiDbContext db, ILogger<CompatibilityEngine> logger)
 {
     // ─────────────────────────────────────────────────────────────────
     // BE-1: Get Latest Skin Profile
@@ -67,10 +68,12 @@ public sealed class CompatibilityEngine(BelumiDbContext db)
             var key = NormalizeIngredientName(name);
             if (!Rules.TryGetValue(key, out var rule))
             {
+                logger.LogDebug("IngredientRuleMiss: {RawName} (normalized: {Key})", name, key);
                 neutral.Add(new CompatibilityItem(name, "Thành phần phụ trợ thông thường.", "Không ảnh hưởng đáng kể đến da của bạn."));
                 continue;
             }
 
+            logger.LogDebug("IngredientRuleMatch: {RawName} → {Key}", name, key);
             var assessment = AssessSingle(rule, profile);
             var item = new CompatibilityItem(name, rule.GeneralReason, assessment.Reasons.FirstOrDefault() ?? "");
 
@@ -87,6 +90,12 @@ public sealed class CompatibilityEngine(BelumiDbContext db)
                     break;
             }
         }
+
+        logger.LogInformation(
+            "ScanSummary: Beneficial={Beneficial}, Harmful={Harmful}, Neutral={Neutral}, Total={Total}",
+            beneficial.Count, harmful.Count, neutral.Count,
+            beneficial.Count + harmful.Count + neutral.Count
+        );
 
         var total = beneficial.Count + harmful.Count + neutral.Count;
         var score = total == 0 ? 50 : CalculateScore(beneficial.Count, harmful.Count, total);
@@ -262,19 +271,25 @@ public sealed class CompatibilityEngine(BelumiDbContext db)
     /// 2. Alias Exact Match
     /// 3. Contains Match (keyword-based fallback)
     /// </summary>
-    private static string NormalizeIngredientName(string name)
+    private string NormalizeIngredientName(string name)
     {
         var key = name.Trim().ToLowerInvariant().Replace("-", " ").Replace("_", " ");
 
         // Step 2: Alias exact match
         if (Aliases.TryGetValue(key, out var canonical))
+        {
+            logger.LogDebug("IngredientAliasHit: {RawName} → {Canonical}", name, canonical);
             return canonical;
+        }
 
         // Step 3: Contains match (longest keyword first to avoid false positives)
         foreach (var (keyword, target) in ContainsAliases)
         {
             if (key.Contains(keyword, StringComparison.OrdinalIgnoreCase))
+            {
+                logger.LogDebug("IngredientContainsHit: {RawName} → {Target} (keyword: {Keyword})", name, target, keyword);
                 return target;
+            }
         }
 
         return key;
