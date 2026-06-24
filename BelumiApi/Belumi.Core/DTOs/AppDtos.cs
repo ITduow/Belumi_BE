@@ -84,7 +84,7 @@ public sealed record CompatibilityIngredientItem(
 );
 
 /// <summary>
-/// Enhanced ingredient detail that includes personalized assessment.
+/// Enhanced ingredient detail that includes general rule info and personalized assessment.
 /// </summary>
 public sealed record EnhancedIngredientDto(
     Guid Id,
@@ -95,6 +95,8 @@ public sealed record EnhancedIngredientDto(
     string Links,
     DateTime CreatedAt,
     DateTime? UpdatedAt,
+    IReadOnlyCollection<string>? GoodFor,
+    IReadOnlyCollection<string>? AvoidFor,
     PersonalizedAssessmentData? PersonalizedAssessment
 );
 

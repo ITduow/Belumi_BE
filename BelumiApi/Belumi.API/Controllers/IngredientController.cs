@@ -62,7 +62,10 @@ public sealed class IngredientController(IAiBeautyService aiBeautyService, Belum
 
         if (ingredient is null) return NotFound();
 
-        // Try to get personalized assessment if user is authenticated
+        // General info: goodFor / avoidFor (always available, not personalized)
+        var generalInfo = compatibilityEngine.GetGeneralInfo(ingredient.NameInc);
+
+        // Personalized assessment (only when user is authenticated + has skin profile)
         PersonalizedAssessmentData? assessment = null;
         if (User.Identity?.IsAuthenticated == true)
         {
@@ -84,6 +87,8 @@ public sealed class IngredientController(IAiBeautyService aiBeautyService, Belum
             ingredient.Links,
             ingredient.CreatedAt,
             ingredient.UpdatedAt,
+            generalInfo?.GoodFor,
+            generalInfo?.AvoidFor,
             assessment
         ));
     }

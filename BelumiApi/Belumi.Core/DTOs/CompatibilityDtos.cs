@@ -36,3 +36,12 @@ public sealed record PersonalizedAssessment(
     string Status,
     List<string> Reasons
 );
+
+// ─────────────────────────────────────────────────────────────────────
+// General ingredient info (goodFor / avoidFor — Sprint 2 ready)
+// ─────────────────────────────────────────────────────────────────────
+
+public sealed record IngredientGeneralInfo(
+    List<string> GoodFor,
+    List<string> AvoidFor
+);

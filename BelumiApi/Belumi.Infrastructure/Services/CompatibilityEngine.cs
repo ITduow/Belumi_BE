@@ -117,6 +117,40 @@ public sealed class CompatibilityEngine(BelumiDbContext db)
     }
 
     // ─────────────────────────────────────────────────────────────────
+    // General Info: goodFor / avoidFor (for Search detail — Sprint 2 ready)
+    // ─────────────────────────────────────────────────────────────────
+
+    /// <summary>
+    /// Returns the general goodFor/avoidFor data from the rule dictionary.
+    /// This is NOT personalized — it shows what skin types/concerns
+    /// the ingredient is generally good or bad for.
+    /// Returns null if no rule exists for this ingredient.
+    /// </summary>
+    public IngredientGeneralInfo? GetGeneralInfo(string ingredientName)
+    {
+        var key = NormalizeIngredientName(ingredientName);
+        if (!Rules.TryGetValue(key, out var rule))
+            return null;
+
+        var goodFor = new List<string>();
+        var avoidFor = new List<string>();
+
+        foreach (var st in rule.GoodForSkinType)
+            goodFor.Add($"Da {DisplaySkinType(st)}");
+        foreach (var c in rule.GoodForConcern)
+            goodFor.Add(DisplayConcern(c));
+
+        foreach (var st in rule.AvoidForSkinType)
+            avoidFor.Add($"Da {DisplaySkinType(st)}");
+        foreach (var c in rule.AvoidForConcern)
+            avoidFor.Add(DisplayConcern(c));
+        if (rule.AvoidIfSensitive)
+            avoidFor.Add("Da quá nhạy cảm");
+
+        return new IngredientGeneralInfo(goodFor, avoidFor);
+    }
+
+    // ─────────────────────────────────────────────────────────────────
     // Internal: Assess one ingredient against profile
     // ─────────────────────────────────────────────────────────────────
 
@@ -217,12 +251,68 @@ public sealed class CompatibilityEngine(BelumiDbContext db)
         _ => concern
     };
 
+    /// <summary>
+    /// 3-step normalization pipeline:
+    /// 1. Normalize (lowercase, strip dashes/underscores)
+    /// 2. Alias Exact Match
+    /// 3. Contains Match (keyword-based fallback)
+    /// </summary>
     private static string NormalizeIngredientName(string name)
     {
         var key = name.Trim().ToLowerInvariant().Replace("-", " ").Replace("_", " ");
-        // Resolve alias to canonical rule key
-        return Aliases.TryGetValue(key, out var canonical) ? canonical : key;
+
+        // Step 2: Alias exact match
+        if (Aliases.TryGetValue(key, out var canonical))
+            return canonical;
+
+        // Step 3: Contains match (longest keyword first to avoid false positives)
+        foreach (var (keyword, target) in ContainsAliases)
+        {
+            if (key.Contains(keyword, StringComparison.OrdinalIgnoreCase))
+                return target;
+        }
+
+        return key;
     }
+
+    /// <summary>
+    /// Keyword-based fallback for INCI names that include suffixes like
+    /// "Extract", "Leaf Extract", "Crosspolymer", etc.
+    /// Sorted by keyword length descending to match most specific first.
+    /// </summary>
+    private static readonly (string Keyword, string Target)[] ContainsAliases =
+    [
+        // Longer/more specific keywords first
+        ("centella asiatica", "centella asiatica"),
+        ("hyaluronic acid", "hyaluronic acid"),
+        ("hyaluronate", "hyaluronic acid"),
+        ("salicylic acid", "salicylic acid"),
+        ("ascorbic acid", "ascorbic acid"),
+        ("ascorbyl", "vitamin c"),
+        ("glycolic acid", "glycolic acid"),
+        ("lactic acid", "lactic acid"),
+        ("azelaic acid", "azelaic acid"),
+        ("tranexamic acid", "tranexamic acid"),
+        ("kojic acid", "kojic acid"),
+        ("benzoyl peroxide", "benzoyl peroxide"),
+        ("tea tree", "tea tree oil"),
+        ("melaleuca", "tea tree oil"),
+        ("niacinamide", "niacinamide"),
+        ("nicotinamide", "niacinamide"),
+        ("panthenol", "panthenol"),
+        ("ceramide", "ceramide"),
+        ("retinol", "retinol"),
+        ("retinal", "retinal"),
+        ("arbutin", "alpha arbutin"),
+        ("squalane", "squalane"),
+        ("allantoin", "allantoin"),
+        ("tocopherol", "tocopherol"),
+        ("shea butter", "shea butter"),
+        ("cocoa butter", "cocoa butter"),
+        ("coconut oil", "coconut oil"),
+        ("fragrance", "fragrance"),
+        ("parfum", "fragrance"),
+    ];
 
     /// <summary>
     /// Maps INCI / alternative names to canonical rule keys.
