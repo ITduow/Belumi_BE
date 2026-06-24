@@ -81,6 +81,7 @@ public static class DependencyInjection
         services.AddScoped<IAiBeautyService, AiBeautyService>();
         services.AddScoped<IPaymentService, PaymentService>();
         services.AddScoped<IUserInteractionService, UserInteractionService>();
+        services.AddScoped<CompatibilityEngine>();
 
         return services;
     }

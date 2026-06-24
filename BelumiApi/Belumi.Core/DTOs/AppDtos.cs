@@ -51,3 +51,55 @@ public sealed record PayOsWebhookData(
     string counterAccountNumber,
     string counterAccountBankId,
     string counterAccountBankName);
+
+// ─────────────────────────────────────────────────────────────────────
+// Enhanced DTOs with Personalized Compatibility
+// ─────────────────────────────────────────────────────────────────────
+
+/// <summary>
+/// Enhanced scan result that includes both safety and compatibility scores.
+/// </summary>
+public sealed record EnhancedIngredientScanResult(
+    int SafetyScore,
+    string Status,
+    string Summary,
+    IReadOnlyCollection<IngredientScanItem> Beneficial,
+    IReadOnlyCollection<IngredientScanItem> Neutral,
+    IReadOnlyCollection<IngredientScanItem> Harmful,
+    IReadOnlyCollection<string> Recommendations,
+    CompatibilityData? Compatibility
+);
+
+public sealed record CompatibilityData(
+    int Score,
+    string Status,
+    IReadOnlyCollection<CompatibilityIngredientItem> Beneficial,
+    IReadOnlyCollection<CompatibilityIngredientItem> Harmful,
+    IReadOnlyCollection<CompatibilityIngredientItem> Neutral
+);
+
+public sealed record CompatibilityIngredientItem(
+    string Name,
+    string Reason,
+    string PersonalReason
+);
+
+/// <summary>
+/// Enhanced ingredient detail that includes personalized assessment.
+/// </summary>
+public sealed record EnhancedIngredientDto(
+    Guid Id,
+    string NameInc,
+    string Name,
+    string Category,
+    string Description,
+    string Links,
+    DateTime CreatedAt,
+    DateTime? UpdatedAt,
+    PersonalizedAssessmentData? PersonalizedAssessment
+);
+
+public sealed record PersonalizedAssessmentData(
+    string Status,
+    IReadOnlyCollection<string> Reasons
+);

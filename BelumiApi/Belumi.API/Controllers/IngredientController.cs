@@ -2,6 +2,7 @@ using Belumi.Application.Abstractions;
 using Belumi.Core.DTOs;
 using Belumi.Core.Entities;
 using Belumi.Infrastructure.Data;
+using Belumi.Infrastructure.Services;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
@@ -11,7 +12,7 @@ namespace Belumi.API.Controllers;
 
 [ApiController]
 [Route("api/ingredients")]
-public sealed class IngredientController(IAiBeautyService aiBeautyService, BelumiDbContext db) : ControllerBase
+public sealed class IngredientController(IAiBeautyService aiBeautyService, BelumiDbContext db, CompatibilityEngine compatibilityEngine) : ControllerBase
 {
     [HttpGet]
     public async Task<ActionResult<IngredientListResult>> Get(
@@ -54,12 +55,37 @@ public sealed class IngredientController(IAiBeautyService aiBeautyService, Belum
     }
 
     [HttpGet("{id:guid}")]
-    public async Task<ActionResult<IngredientDto>> GetById(Guid id, CancellationToken cancellationToken)
+    public async Task<ActionResult> GetById(Guid id, CancellationToken cancellationToken)
     {
         var ingredient = await db.Ingredients.AsNoTracking()
             .FirstOrDefaultAsync(x => x.Id == id, cancellationToken);
 
-        return ingredient is null ? NotFound() : Ok(ToDto(ingredient));
+        if (ingredient is null) return NotFound();
+
+        // Try to get personalized assessment if user is authenticated
+        PersonalizedAssessmentData? assessment = null;
+        if (User.Identity?.IsAuthenticated == true)
+        {
+            var userId = User.GetUserId();
+            var profile = await compatibilityEngine.GetSkinProfileAsync(userId, cancellationToken);
+            if (profile is not null)
+            {
+                var result = compatibilityEngine.EvaluateSingle(ingredient.NameInc, profile);
+                assessment = new PersonalizedAssessmentData(result.Status, result.Reasons);
+            }
+        }
+
+        return Ok(new EnhancedIngredientDto(
+            ingredient.Id,
+            ingredient.NameInc,
+            ingredient.Name,
+            ingredient.Category,
+            ingredient.Description,
+            ingredient.Links,
+            ingredient.CreatedAt,
+            ingredient.UpdatedAt,
+            assessment
+        ));
     }
 
     [HttpPost]
@@ -138,20 +164,26 @@ public sealed class IngredientController(IAiBeautyService aiBeautyService, Belum
 
     [HttpPost("analyze-text")]
     [Authorize]
-    public async Task<ActionResult<IngredientScanResult>> AnalyzeText(IngredientAnalyzeTextRequest request, CancellationToken cancellationToken)
+    public async Task<ActionResult<EnhancedIngredientScanResult>> AnalyzeText(IngredientAnalyzeTextRequest request, CancellationToken cancellationToken)
     {
         var result = aiBeautyService.AnalyzeIngredientLabel(new IngredientScanRequest(request.InputText, request.SkinType, request.Allergies));
-        await SaveLookupAsync(request.UserId == Guid.Empty ? User.GetUserId() : request.UserId, request.InputText, null, result, cancellationToken);
-        return Ok(result);
+        var userId = request.UserId == Guid.Empty ? User.GetUserId() : request.UserId;
+        await SaveLookupAsync(userId, request.InputText, null, result, cancellationToken);
+
+        var enhanced = await BuildEnhancedResultAsync(result, userId, request.InputText, cancellationToken);
+        return Ok(enhanced);
     }
 
     [HttpPost("analyze-image")]
     [Authorize]
-    public async Task<ActionResult<IngredientScanResult>> AnalyzeImage(IngredientAnalyzeImageRequest request, CancellationToken cancellationToken)
+    public async Task<ActionResult<EnhancedIngredientScanResult>> AnalyzeImage(IngredientAnalyzeImageRequest request, CancellationToken cancellationToken)
     {
         var result = aiBeautyService.AnalyzeIngredientLabel(new IngredientScanRequest(request.ImageUrl, request.SkinType, request.Allergies));
-        await SaveLookupAsync(request.UserId == Guid.Empty ? User.GetUserId() : request.UserId, request.OcrText ?? request.ImageUrl, request.ImageUrl, result, cancellationToken);
-        return Ok(result);
+        var userId = request.UserId == Guid.Empty ? User.GetUserId() : request.UserId;
+        await SaveLookupAsync(userId, request.OcrText ?? request.ImageUrl, request.ImageUrl, result, cancellationToken);
+
+        var enhanced = await BuildEnhancedResultAsync(result, userId, request.OcrText ?? request.ImageUrl, cancellationToken);
+        return Ok(enhanced);
     }
 
     [HttpGet("history/{userId:guid}")]
@@ -191,6 +223,46 @@ public sealed class IngredientController(IAiBeautyService aiBeautyService, Belum
             ResponseData = JsonSerializer.Serialize(result)
         });
         await db.SaveChangesAsync(cancellationToken);
+    }
+
+    /// <summary>
+    /// Builds an enhanced scan result by appending compatibility data from the Rule Engine.
+    /// </summary>
+    private async Task<EnhancedIngredientScanResult> BuildEnhancedResultAsync(
+        IngredientScanResult safetyResult, Guid userId, string rawInput, CancellationToken ct)
+    {
+        CompatibilityData? compatibility = null;
+
+        var profile = await compatibilityEngine.GetSkinProfileAsync(userId, ct);
+        if (profile is not null)
+        {
+            // Extract ingredient names from the raw input text
+            var ingredientNames = rawInput
+                .Split(['\n', ',', ';'])
+                .Select(x => x.Trim())
+                .Where(x => !string.IsNullOrWhiteSpace(x))
+                .ToList();
+
+            var compResult = compatibilityEngine.Evaluate(ingredientNames, profile);
+            compatibility = new CompatibilityData(
+                compResult.Score,
+                compResult.Status,
+                compResult.Beneficial.Select(x => new CompatibilityIngredientItem(x.Name, x.Reason, x.PersonalReason)).ToList(),
+                compResult.Harmful.Select(x => new CompatibilityIngredientItem(x.Name, x.Reason, x.PersonalReason)).ToList(),
+                compResult.Neutral.Select(x => new CompatibilityIngredientItem(x.Name, x.Reason, x.PersonalReason)).ToList()
+            );
+        }
+
+        return new EnhancedIngredientScanResult(
+            safetyResult.SafetyScore,
+            safetyResult.Status,
+            safetyResult.Summary,
+            safetyResult.Beneficial,
+            safetyResult.Neutral,
+            safetyResult.Harmful,
+            safetyResult.Recommendations,
+            compatibility
+        );
     }
 
     private static IngredientDto ToDto(Ingredient ingredient) =>
