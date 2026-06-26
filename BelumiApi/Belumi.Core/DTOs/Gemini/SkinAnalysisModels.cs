@@ -17,14 +17,26 @@ public class SkinAnalysisResult
     [JsonPropertyName("acne_types")]
     public List<string> AcneTypes { get; set; } = new();
 
-    [JsonPropertyName("dark_spots")]
-    public bool DarkSpots { get; set; }
+    [JsonPropertyName("oiliness_level")]
+    public string OilinessLevel { get; set; } = string.Empty;
 
-    [JsonPropertyName("enlarged_pores")]
-    public bool EnlargedPores { get; set; }
+    [JsonPropertyName("oiliness_zones")]
+    public List<string> OilinessZones { get; set; } = new();
 
-    [JsonPropertyName("redness")]
-    public bool Redness { get; set; }
+    [JsonPropertyName("pore_visibility_level")]
+    public string PoreVisibilityLevel { get; set; } = string.Empty;
+
+    [JsonPropertyName("pigmentation_level")]
+    public string PigmentationLevel { get; set; } = string.Empty;
+
+    [JsonPropertyName("skin_tone_evenness_level")]
+    public string SkinToneEvennessLevel { get; set; } = string.Empty;
+
+    [JsonPropertyName("visible_redness_level")]
+    public string VisibleRednessLevel { get; set; } = string.Empty;
+
+    [JsonPropertyName("visible_wrinkle_level")]
+    public string VisibleWrinkleLevel { get; set; } = string.Empty;
 
     [JsonPropertyName("confidence")]
     public double Confidence { get; set; }
@@ -35,11 +47,7 @@ public class SkinAnalysisResult
     [JsonPropertyName("description")]
     public string Description { get; set; } = string.Empty;
 
-    [JsonPropertyName("advice")]
-    public List<string> Advice { get; set; } = new();
 
-    [JsonPropertyName("warnings")]
-    public List<string> Warnings { get; set; } = new();
 
     [JsonPropertyName("recommended_ingredients")]
     public List<IngredientRecommendation> RecommendedIngredients { get; set; } = new();

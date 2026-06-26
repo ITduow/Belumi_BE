@@ -112,8 +112,7 @@ public class SkinAnalysisService : ISkinAnalysisService
 
         result.SkinCondition = GenerateSkinCondition(result);
         result.Description   = GenerateDescription(result, skinType);
-        result.Advice        = GenerateAdvice(result, skinType);
-        result.Warnings      = GenerateWarnings(result, skinType);
+
         result.RecommendedIngredients   = GenerateRecommendedIngredients(result, skinType);
         result.AvoidOrProfessionalOnly  = GenerateAvoidOrProfessionalOnly(result, skinType);
 
@@ -130,9 +129,9 @@ public class SkinAnalysisService : ISkinAnalysisService
     {
         var concernCount = 0;
         if (result.AcneLevel != "none") concernCount++;
-        if (result.DarkSpots)           concernCount++;
-        if (result.EnlargedPores)       concernCount++;
-        if (result.Redness)             concernCount++;
+        if (result.PigmentationLevel is "medium" or "high") concernCount++;
+        if (result.PoreVisibilityLevel is "medium" or "high") concernCount++;
+        if (result.VisibleRednessLevel is "medium" or "high") concernCount++;
 
         return result.AcneLevel switch
         {
@@ -158,9 +157,9 @@ public class SkinAnalysisService : ISkinAnalysisService
             "severe"   => "mụn nặng",
             _          => "mụn"
         });
-        if (result.DarkSpots)     concerns.Add("thâm");
-        if (result.EnlargedPores) concerns.Add("lỗ chân lông to");
-        if (result.Redness)       concerns.Add("vùng đỏ");
+        if (result.PigmentationLevel is "medium" or "high") concerns.Add("thâm");
+        if (result.PoreVisibilityLevel is "medium" or "high") concerns.Add("lỗ chân lông to");
+        if (result.VisibleRednessLevel is "medium" or "high") concerns.Add("vùng đỏ");
 
         string sentence1;
         if (!concerns.Any())
@@ -176,7 +175,7 @@ public class SkinAnalysisService : ISkinAnalysisService
             sentence1 = $"Da bạn có {concernText}.";
         }
 
-        var sentence2 = (result.AcneLevel, skinType, result.DarkSpots) switch
+        var sentence2 = (result.AcneLevel, skinType, result.PigmentationLevel is "medium" or "high") switch
         {
             ("severe", _, _) =>
                 "Tình trạng khá nghiêm trọng, nên tham khảo bác sĩ da liễu thay vì tự điều trị.",
@@ -197,11 +196,11 @@ public class SkinAnalysisService : ISkinAnalysisService
             ("mild", _, _) =>
                 "Tình trạng hiện tại nhẹ, có thể cải thiện rõ với routine đơn giản và kiên trì.",
 
-            ("none", "sensitive", _) when result.Redness =>
+            ("none", "sensitive", _) when result.VisibleRednessLevel is "medium" or "high" =>
                 "Đỏ da trên da nhạy cảm cần theo dõi — ưu tiên sản phẩm dịu nhẹ và phục hồi barrier.",
-            ("none", "dry", _) when result.DarkSpots =>
+            ("none", "dry", _) when result.PigmentationLevel is "medium" or "high" =>
                 "Da khô kèm thâm cần dưỡng ẩm tốt trước khi dùng active làm sáng để tránh kích ứng.",
-            ("none", "oily", _) when result.EnlargedPores =>
+            ("none", "oily", _) when result.PoreVisibilityLevel is "medium" or "high" =>
                 "Lỗ chân lông to trên da dầu thường do bã nhờn tích tụ — BHA định kỳ sẽ giúp cải thiện.",
             ("none", _, _) when concerns.Any() =>
                 "Các dấu hiệu hiện tại chưa nghiêm trọng, duy trì routine đều đặn sẽ cải thiện tốt.",
@@ -266,19 +265,19 @@ public class SkinAnalysisService : ISkinAnalysisService
             AddIngredient(items, "salicylic acid", "BHA hỗ trợ mụn và bít tắc lỗ chân lông khi dùng thận trọng.", "aad_acne_treatment");
         }
 
-        if (result.DarkSpots)
+        if (result.PigmentationLevel is "medium" or "high")
         {
             AddIngredient(items, "azelaic acid", "Có thể hỗ trợ thâm và da không đều màu.", "aad_acne_treatment");
             AddIngredient(items, "niacinamide", "Có thể hỗ trợ hàng rào da và tình trạng không đều màu trong routine dịu nhẹ.", "aad_pick_moisturizer");
             AddIngredient(items, "vitamin C", "Có thể hỗ trợ làm sáng và đều màu da khi da dung nạp tốt.", "aad_pick_moisturizer");
         }
 
-        if (skinType == "oily" || result.EnlargedPores)
+        if (skinType == "oily" || result.PoreVisibilityLevel is "medium" or "high")
         {
             AddIngredient(items, "salicylic acid", "BHA có thể hỗ trợ dầu thừa, bít tắc và lỗ chân lông rõ.", "aad_acne_treatment");
         }
 
-        if (result.Redness)
+        if (result.VisibleRednessLevel is "medium" or "high")
         {
             AddIngredient(items, "broad-spectrum SPF 30+ sunscreen", "Chống nắng giúp bảo vệ vùng da đỏ và giảm nguy cơ thâm sau viêm.", "aad_sunscreen_faq");
         }
@@ -310,7 +309,7 @@ public class SkinAnalysisService : ISkinAnalysisService
     }
 
     private static bool ShouldTreatAsSensitive(SkinAnalysisResult result, string skinType) =>
-        skinType == "sensitive" || result.Redness || result.AcneLevel == "severe";
+        skinType == "sensitive" || result.VisibleRednessLevel is "medium" or "high" || result.AcneLevel == "severe";
 
     private static void AddIngredient(
         Dictionary<string, IngredientRecommendation> items,
@@ -325,116 +324,6 @@ public class SkinAnalysisService : ISkinAnalysisService
             Reason = reason,
             SourceIds = sourceIds.ToList()
         };
-    }
-
-    // ─────────────────────────────────────────────────────────────────────────
-    // ADVICE
-    // ─────────────────────────────────────────────────────────────────────────
-
-    private static List<string> GenerateAdvice(SkinAnalysisResult result, string skinType)
-    {
-        var advice = new List<string>();
-
-        advice.Add("Ưu tiên routine đơn giản và ổn định trong ít nhất 4 tuần trước khi đánh giá hiệu quả");
-        advice.Add("Dùng kem chống nắng SPF 30+ mỗi sáng, dù ở trong nhà");
-
-        switch (skinType)
-        {
-            case "oily":
-                advice.Add("Không bỏ bước dưỡng ẩm — da thiếu ẩm sẽ tiết dầu nhiều hơn để bù lại");
-                advice.Add("Rửa mặt tối đa 2 lần/ngày, thêm 1 lần nếu vừa vận động ra nhiều mồ hôi");
-                break;
-
-            case "dry":
-                advice.Add("Thoa moisturizer ngay khi da còn hơi ẩm sau rửa mặt để giữ nước tốt hơn");
-                advice.Add("Chỉ dùng sản phẩm ghi rõ \"fragrance-free\", không phải \"unscented\"");
-                break;
-
-            case "combination":
-                advice.Add("Có thể dùng cleanser nhẹ hơn ở vùng má và BHA nhẹ ở vùng T riêng biệt");
-                advice.Add("Dưỡng ẩm tập trung vùng má, tránh thoa nhiều lên vùng trán và mũi");
-                break;
-
-            case "sensitive":
-                advice.Add("Patch test sản phẩm mới ở cổ tay hoặc sau tai trước khi thoa lên mặt");
-                advice.Add("Chỉ thêm tối đa 1 sản phẩm mới vào routine tại một thời điểm");
-                break;
-
-            case "normal":
-                // Da thường cân bằng tự nhiên, không cần lời khuyên đặc thù theo loại da
-                break;
-        }
-
-        if (result.AcneLevel != "none")
-            advice.Add("Thoa acne treatment lên cả vùng hay nổi mụn, không chỉ spot treatment lên từng nốt");
-
-        if (result.DarkSpots)
-            advice.Add("Dùng SPF 50+ khi ra ngoài — thiếu SPF làm thâm đậm hơn và kéo dài thời gian trị");
-
-        if (result.Redness)
-            advice.Add("Rửa mặt bằng nước ấm (không nóng) để tránh kích ứng thêm vùng đỏ");
-
-        if (result.EnlargedPores)
-            advice.Add("Làm sạch da kỹ vào buổi tối quan trọng hơn buổi sáng vì bã nhờn tích tụ suốt ngày");
-
-        return advice;
-    }
-
-    // ─────────────────────────────────────────────────────────────────────────
-    // WARNINGS
-    // ─────────────────────────────────────────────────────────────────────────
-
-    private static List<string> GenerateWarnings(SkinAnalysisResult result, string skinType)
-    {
-        var warnings = new List<string>();
-
-        if (result.AcneLevel is "mild" or "moderate")
-        {
-            warnings.Add("Không tự nặn mụn viêm — có thể đẩy vi khuẩn sâu hơn và gây thâm, sẹo");
-            warnings.Add("Không đổi sản phẩm liên tục — cần ít nhất 4–6 tuần mới thấy hiệu quả rõ");
-        }
-        else if (result.AcneLevel == "severe")
-        {
-            warnings.Add("Không tự nặn hoặc can thiệp vào mụn viêm nặng — nguy cơ sẹo rất cao");
-            warnings.Add("Không tự dùng retinoid hoặc acid nồng độ cao khi chưa có chỉ định của bác sĩ");
-        }
-
-        switch (skinType)
-        {
-            case "oily":
-                warnings.Add("Không rửa mặt quá 2–3 lần/ngày — rửa nhiều gây kích ứng và da tiết dầu ngược");
-                warnings.Add("Tránh sản phẩm chứa cồn nồng độ cao (alcohol denat.) — làm khô da và kích bùng dầu");
-                break;
-
-            case "dry":
-                warnings.Add("Tránh sản phẩm chứa fragrance, cồn và AHA nồng độ cao — phá vỡ barrier da khô");
-                warnings.Add("Không dùng nước nóng khi rửa mặt — làm mất dầu tự nhiên và tăng độ khô");
-                break;
-
-            case "combination":
-                warnings.Add("Không dùng sản phẩm kiểm soát dầu mạnh lên vùng má — gây khô và bong tróc");
-                break;
-
-            case "sensitive":
-                warnings.Add("Tránh layer nhiều active (AHA, BHA, Retinol, Vitamin C) cùng một buổi");
-                warnings.Add("Không dùng sản phẩm có fragrance hoặc essential oil — hai thành phần kích ứng phổ biến nhất");
-                break;
-
-            case "normal":
-                // Da thường khỏe mạnh, không cần cảnh báo đặc thù theo loại da
-                break;
-        }
-
-        if (result.DarkSpots)
-            warnings.Add("Không bỏ SPF khi đang dùng Vitamin C hoặc AHA — ánh nắng làm thâm tối và lâu mờ hơn");
-
-        if (result.Redness && skinType == "sensitive")
-            warnings.Add("Đỏ da không cải thiện sau 2–3 tuần nên được kiểm tra bởi bác sĩ da liễu");
-
-        if (result.EnlargedPores && result.AcneLevel != "none")
-            warnings.Add("Không dùng BHA và Retinol cùng một buổi tối — gây kích ứng và làm mỏng barrier");
-
-        return warnings;
     }
 
     // ─────────────────────────────────────────────────────────────────────────
@@ -544,12 +433,24 @@ public class SkinAnalysisService : ISkinAnalysisService
           "type": "array",
           "items": { "type": "string", "enum": ["closed_comedone_like", "open_comedone_like", "papule_like", "pustule_like", "nodule_or_cyst_like"] }
         },
-        "dark_spots": { "type": "boolean" },
-        "enlarged_pores": { "type": "boolean" },
-        "redness": { "type": "boolean" },
+        "oiliness_level": { "type": "string", "enum": ["low", "medium", "high"] },
+        "oiliness_zones": {
+          "type": "array",
+          "items": { "type": "string", "enum": ["forehead", "nose", "chin", "cheeks"] }
+        },
+        "pore_visibility_level": { "type": "string", "enum": ["low", "medium", "high"] },
+        "pigmentation_level": { "type": "string", "enum": ["low", "medium", "high"] },
+        "skin_tone_evenness_level": { "type": "string", "enum": ["low", "medium", "high"] },
+        "visible_redness_level": { "type": "string", "enum": ["low", "medium", "high"] },
+        "visible_wrinkle_level": { "type": "string", "enum": ["low", "medium", "high"] },
         "confidence": { "type": "number" }
       },
-      "required": ["face_detected", "image_subject", "acne_level", "acne_types", "dark_spots", "enlarged_pores", "redness", "confidence"],
+      "required": [
+        "face_detected", "image_subject", "acne_level", "acne_types",
+        "oiliness_level", "oiliness_zones", "pore_visibility_level",
+        "pigmentation_level", "skin_tone_evenness_level", "visible_redness_level",
+        "visible_wrinkle_level", "confidence"
+      ],
       "additionalProperties": false
     }
     """;
@@ -563,9 +464,16 @@ public class SkinAnalysisService : ISkinAnalysisService
         First determine whether the image contains a visible human face suitable for facial skin analysis.
         If the image does not contain a human face, set face_detected=false and image_subject to the best matching category.
         If the image contains an animal, object, landscape, product photo, or other non-face subject, do not infer skin concerns.
-        If face_detected=false, set acne_level="none", acne_types=[], all concern booleans=false, and confidence based only on subject detection.
+        If face_detected=false, set acne_level="none", acne_types=[], all ordinal levels to "low", oiliness_zones=[], and confidence based only on subject detection.
 
         Your task: Analyze the facial image and identify VISIBLE skin concerns only when face_detected=true.
+        For each visible feature, assign a severity level using only what is visually observable.
+        Do not infer biological properties that cannot be seen directly.
+
+        Use:
+        low = minimal / barely visible
+        medium = noticeable but localized
+        high = obvious, widespread, or strong
 
         Acne severity:
         Classify acne_level using a Hayashi-inspired estimate of visible inflammatory lesions on one half of the face.
@@ -587,11 +495,43 @@ public class SkinAnalysisService : ISkinAnalysisService
         If no acne-like lesions are visible, return acne_types=[].
 
         Other visible skin signs:
-        - dark_spots: true when visible post-acne marks, brown/dark spots, hyperpigmentation, or clearly uneven darker areas caused by pigmentation are present.
-        - enlarged_pores: true when pores are visibly enlarged or prominent, especially around the nose, cheeks, or T-zone.
-        - redness: true when visible red/pink irritated or inflamed areas are present, including redness around acne lesions.
+        
+        oiliness_level:
+        Estimate visible surface oil shine only.
+        - low: matte skin, minimal specular highlights
+        - medium: visible shine in 1–2 facial zones
+        - high: strong reflective shine across T-zone or multiple zones
+        
+        oiliness_zones:
+        Return facial zones where oil shine is concentrated (forehead, nose, chin, cheeks).
+        
+        pore_visibility_level:
+        - low: pores barely noticeable
+        - medium: visible pores in limited areas (nose/inner cheeks)
+        - high: clearly enlarged pores across multiple areas
+        
+        pigmentation_level:
+        - low: few isolated marks
+        - medium: multiple visible spots or clustered PIH
+        - high: widespread or dense hyperpigmentation
+        
+        skin_tone_evenness_level:
+        - low: tone looks mostly uniform
+        - medium: mild unevenness in brightness or pigmentation
+        - high: obvious patchiness or multiple uneven-toned regions
+        
+        visible_redness_level:
+        Evaluate only visible redness at capture time.
+        - low: little to no redness
+        - medium: localized redness
+        - high: broad or intense redness
+        
+        visible_wrinkle_level:
+        - low: no obvious visible lines
+        - medium: visible fine lines in limited areas
+        - high: multiple clear lines or deeper creases
 
-        Do not mark concerns true when they are likely caused only by shadows, uneven lighting, flash, filters, makeup, blur, or low image quality.
+        Do not mark concerns with higher levels when they are likely caused only by shadows, uneven lighting, flash, filters, makeup, blur, or low image quality.
 
         confidence: How confident you are in this analysis based on image quality (0.0 to 1.0).
 
