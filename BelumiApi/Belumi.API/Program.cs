@@ -63,6 +63,7 @@ app.UseAuthentication();
 app.UseAuthorization();
 app.MapControllers();
 app.MapSkinEndpoints();
+app.MapQuizEndpoints();
 
 using (var scope = app.Services.CreateScope())
 {
