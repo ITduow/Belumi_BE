@@ -208,8 +208,8 @@ public static class SkinEndpoints
             SkinType = skinType,
             Concerns = BuildConcerns(result),
             AiResult = JsonSerializer.Serialize(result),
-            RecommendedIngredients = JsonSerializer.Serialize(result.RecommendedIngredients),
-            AvoidIngredients = JsonSerializer.Serialize(result.AvoidOrProfessionalOnly),
+            RecommendedIngredients = "[]",
+            AvoidIngredients = "[]",
             Recommendations = BuildRecommendations(result),
             Score = (int)Math.Round(Math.Clamp(result.Confidence, 0, 1) * 100),
             AnalyzedAt = DateTime.UtcNow

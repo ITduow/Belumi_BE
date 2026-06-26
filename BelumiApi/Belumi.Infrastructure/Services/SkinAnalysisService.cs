@@ -113,8 +113,6 @@ public class SkinAnalysisService : ISkinAnalysisService
         result.SkinCondition = GenerateSkinCondition(result);
         result.Description   = GenerateDescription(result, skinType);
 
-        result.RecommendedIngredients   = GenerateRecommendedIngredients(result, skinType);
-        result.AvoidOrProfessionalOnly  = GenerateAvoidOrProfessionalOnly(result, skinType);
 
         _cache.Set(cacheKey, result, TimeSpan.FromHours(24));
 
@@ -244,87 +242,6 @@ public class SkinAnalysisService : ISkinAnalysisService
         return $"Các dạng mụn nhìn thấy gồm {acneTypeText}.";
     }
 
-    private static List<IngredientRecommendation> GenerateRecommendedIngredients(SkinAnalysisResult result, string skinType)
-    {
-        var items = new Dictionary<string, IngredientRecommendation>(StringComparer.OrdinalIgnoreCase);
-        var treatAsSensitive = ShouldTreatAsSensitive(result, skinType);
-
-        if (treatAsSensitive)
-        {
-            AddIngredient(items, "ceramides", "Hỗ trợ dưỡng ẩm và củng cố hàng rào bảo vệ da khi da đang đỏ hoặc dễ kích ứng.", "aad_pick_moisturizer");
-            AddIngredient(items, "hyaluronic acid", "Hỗ trợ cấp ẩm, phù hợp khi cần ưu tiên phục hồi và giảm khô căng.", "aad_pick_moisturizer");
-            AddIngredient(items, "fragrance-free moisturizer", "Giảm nguy cơ kích ứng từ hương liệu trong giai đoạn da đang nhạy cảm.", "fda_fragrances");
-            AddIngredient(items, "broad-spectrum SPF 30+ sunscreen", "Chống nắng hằng ngày giúp hạn chế thâm và bảo vệ vùng da đang viêm đỏ.", "aad_sunscreen_faq");
-            return items.Values.OrderBy(x => x.Name).ToList();
-        }
-
-        if (result.AcneLevel != "none")
-        {
-            AddIngredient(items, "azelaic acid", "Có thể hỗ trợ da có mụn và thâm sau mụn trong routine phù hợp.", "aad_acne_treatment");
-            AddIngredient(items, "benzoyl peroxide", "Hoạt chất trị mụn phổ biến, phù hợp hơn khi da không đang đỏ hoặc quá nhạy cảm.", "aad_acne_treatment");
-            AddIngredient(items, "salicylic acid", "BHA hỗ trợ mụn và bít tắc lỗ chân lông khi dùng thận trọng.", "aad_acne_treatment");
-        }
-
-        if (result.PigmentationLevel is "medium" or "high")
-        {
-            AddIngredient(items, "azelaic acid", "Có thể hỗ trợ thâm và da không đều màu.", "aad_acne_treatment");
-            AddIngredient(items, "niacinamide", "Có thể hỗ trợ hàng rào da và tình trạng không đều màu trong routine dịu nhẹ.", "aad_pick_moisturizer");
-            AddIngredient(items, "vitamin C", "Có thể hỗ trợ làm sáng và đều màu da khi da dung nạp tốt.", "aad_pick_moisturizer");
-        }
-
-        if (skinType == "oily" || result.PoreVisibilityLevel is "medium" or "high")
-        {
-            AddIngredient(items, "salicylic acid", "BHA có thể hỗ trợ dầu thừa, bít tắc và lỗ chân lông rõ.", "aad_acne_treatment");
-        }
-
-        if (result.VisibleRednessLevel is "medium" or "high")
-        {
-            AddIngredient(items, "broad-spectrum SPF 30+ sunscreen", "Chống nắng giúp bảo vệ vùng da đỏ và giảm nguy cơ thâm sau viêm.", "aad_sunscreen_faq");
-        }
-
-        return items.Values.OrderBy(x => x.Name).ToList();
-    }
-
-    private static List<IngredientRecommendation> GenerateAvoidOrProfessionalOnly(SkinAnalysisResult result, string skinType)
-    {
-        var items = new Dictionary<string, IngredientRecommendation>(StringComparer.OrdinalIgnoreCase);
-        var treatAsSensitive = ShouldTreatAsSensitive(result, skinType);
-
-        if (treatAsSensitive)
-        {
-            AddIngredient(items, "retinoids", "Có thể gây khô, bong tróc hoặc kích ứng; nên hỏi chuyên gia khi da đang đỏ, nhạy cảm hoặc mụn nặng.", "aad_acne_treatment");
-            AddIngredient(items, "glycolic acid / exfoliating acids", "Acid tẩy da chết có thể làm da đang đỏ hoặc yếu hàng rào bảo vệ kích ứng thêm.", "aad_isotretinoin_skin_care");
-            AddIngredient(items, "salicylic acid", "Có thể hữu ích cho mụn nhưng nên thận trọng khi da đang đỏ hoặc nhạy cảm.", "aad_acne_treatment");
-            AddIngredient(items, "benzoyl peroxide", "Có thể gây khô, rát hoặc kích ứng; không nên tự dùng mạnh khi da đang viêm đỏ.", "aad_acne_treatment");
-            AddIngredient(items, "fragrance", "Hương liệu có thể gây nhạy cảm hoặc kích ứng ở một số người.", "fda_fragrances");
-            AddIngredient(items, "physical scrub", "Chà xát cơ học có thể làm vùng viêm đỏ kích ứng thêm.", "aad_acne_treatment");
-        }
-
-        if (result.AcneLevel == "severe")
-        {
-            AddIngredient(items, "strong acne actives", "Mụn nặng nên được đánh giá bởi bác sĩ da liễu trước khi phối nhiều hoạt chất mạnh.", "aad_acne_treatment");
-        }
-
-        return items.Values.OrderBy(x => x.Name).ToList();
-    }
-
-    private static bool ShouldTreatAsSensitive(SkinAnalysisResult result, string skinType) =>
-        skinType == "sensitive" || result.VisibleRednessLevel is "medium" or "high" || result.AcneLevel == "severe";
-
-    private static void AddIngredient(
-        Dictionary<string, IngredientRecommendation> items,
-        string name,
-        string reason,
-        params string[] sourceIds)
-    {
-        if (items.ContainsKey(name)) return;
-        items[name] = new IngredientRecommendation
-        {
-            Name = name,
-            Reason = reason,
-            SourceIds = sourceIds.ToList()
-        };
-    }
 
     // ─────────────────────────────────────────────────────────────────────────
     // IMAGE UTILS
