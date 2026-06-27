@@ -208,8 +208,8 @@ public static class SkinEndpoints
             SkinType = skinType,
             Concerns = BuildConcerns(result),
             AiResult = JsonSerializer.Serialize(result),
-            RecommendedIngredients = JsonSerializer.Serialize(result.RecommendedIngredients),
-            AvoidIngredients = JsonSerializer.Serialize(result.AvoidOrProfessionalOnly),
+            RecommendedIngredients = "[]",
+            AvoidIngredients = "[]",
             Recommendations = BuildRecommendations(result),
             Score = (int)Math.Round(Math.Clamp(result.Confidence, 0, 1) * 100),
             AnalyzedAt = DateTime.UtcNow
@@ -223,9 +223,12 @@ public static class SkinEndpoints
         var concerns = new[]
         {
             result.AcneLevel != "none" ? $"acne:{result.AcneLevel}" : null,
-            result.DarkSpots ? "dark_spots" : null,
-            result.EnlargedPores ? "enlarged_pores" : null,
-            result.Redness ? "redness" : null
+            result.PigmentationLevel is "medium" or "high" ? $"pigmentation:{result.PigmentationLevel}" : null,
+            result.PoreVisibilityLevel is "medium" or "high" ? $"pores:{result.PoreVisibilityLevel}" : null,
+            result.VisibleRednessLevel is "medium" or "high" ? $"redness:{result.VisibleRednessLevel}" : null,
+            result.OilinessLevel is "medium" or "high" ? $"oiliness:{result.OilinessLevel}" : null,
+            result.VisibleWrinkleLevel is "medium" or "high" ? $"wrinkles:{result.VisibleWrinkleLevel}" : null,
+            result.SkinToneEvennessLevel is "medium" or "high" ? $"uneven_tone:{result.SkinToneEvennessLevel}" : null
         };
 
         return string.Join(", ", concerns.Where(x => !string.IsNullOrWhiteSpace(x)));
@@ -235,9 +238,7 @@ public static class SkinEndpoints
     {
         var parts = new[]
         {
-            result.Description,
-            result.Advice.Count > 0 ? "Advice: " + string.Join(" | ", result.Advice) : null,
-            result.Warnings.Count > 0 ? "Warnings: " + string.Join(" | ", result.Warnings) : null
+            result.Description
         };
 
         return string.Join("\n", parts.Where(x => !string.IsNullOrWhiteSpace(x)));
