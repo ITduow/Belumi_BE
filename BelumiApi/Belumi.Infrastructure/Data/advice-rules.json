@@ -1,0 +1,717 @@
+{
+  "rules": [
+    {
+      "id": "R001",
+      "category": "Acne",
+      "field": "acne_level",
+      "condition": "none",
+      "advice": "Da hiện không có mụn viêm rõ rệt. Duy trì routine làm sạch nhẹ nhàng + dưỡng ẩm + chống nắng để phòng ngừa.",
+      "routine": "AM: Sữa rửa mặt dịu nhẹ → Dưỡng ẩm → Kem chống nắng SPF30+. PM: Làm sạch → Dưỡng ẩm.",
+      "warning": null,
+      "priority": "low",
+      "source": "[S1] AAD Acne Guideline 2024",
+      "conditions": {
+        "field": "acne_level",
+        "op": "eq",
+        "value": "none"
+      }
+    },
+    {
+      "id": "R002",
+      "category": "Acne",
+      "field": "acne_level",
+      "condition": "mild",
+      "advice": "Mụn nhẹ: ưu tiên salicylic acid (BHA) để làm sạch lỗ chân lông và benzoyl peroxide nồng độ thấp (2.5%) chấm vùng mụn. Có thể thêm retinoid nồng độ thấp (adapalene 0.1%) buổi tối nếu da dung nạp tốt.",
+      "routine": "PM (cách ngày): Làm sạch → Toner/serum salicylic acid 0.5-2% → Chấm BP 2.5% lên nốt mụn → Dưỡng ẩm. AM: Chống nắng bắt buộc.",
+      "warning": "Bắt đầu tần suất thấp (2-3 lần/tuần), tăng dần để tránh kích ứng. Không kết hợp BHA + retinoid cùng lúc trong giai đoạn đầu.",
+      "priority": "low",
+      "source": "[S1] AAD Acne Guideline 2024; [S5] Salicylic acid keratolytic study",
+      "conditions": {
+        "field": "acne_level",
+        "op": "eq",
+        "value": "mild"
+      }
+    },
+    {
+      "id": "R003",
+      "category": "Acne",
+      "field": "acne_level",
+      "condition": "moderate",
+      "advice": "Mụn trung bình: kết hợp benzoyl peroxide + retinoid tại chỗ (fixed-dose combination) là khuyến nghị mạnh theo AAD vì tăng hiệu quả và giảm nguy cơ kháng kháng sinh.",
+      "routine": "PM: Làm sạch → Benzoyl peroxide hoặc kết hợp BP+retinoid → Dưỡng ẩm phục hồi. AM: Chống nắng. Đánh giá lại sau 8-12 tuần.",
+      "warning": "Nếu không cải thiện sau 8-12 tuần hoặc có dấu hiệu để lại sẹo/thâm, nên gặp bác sĩ da liễu. Tránh dùng nhiều active mạnh cùng lúc (dễ kích ứng).",
+      "priority": "medium",
+      "source": "[S1] AAD Acne Guideline 2024; [S2] JAAD Acne Vulgaris Guideline",
+      "conditions": {
+        "field": "acne_level",
+        "op": "eq",
+        "value": "moderate"
+      }
+    },
+    {
+      "id": "R004",
+      "category": "Acne",
+      "field": "acne_level",
+      "condition": "severe",
+      "advice": "Mụn nặng: AAD khuyến nghị mạnh isotretinoin đường uống cho các trường hợp mụn nặng, gây ảnh hưởng tâm lý, có nguy cơ sẹo, hoặc không đáp ứng điều trị tại chỗ/đường uống thông thường.",
+      "routine": "Không tự đề xuất routine điều trị active mạnh tại nhà. Chỉ duy trì làm sạch dịu nhẹ + dưỡng ẩm + chống nắng trong lúc chờ thăm khám.",
+      "warning": "Khuyến nghị gặp bác sĩ da liễu càng sớm càng tốt — đây là mức độ cần điều trị y khoa, không nên tự ý dùng active mạnh tại nhà vì nguy cơ sẹo vĩnh viễn.",
+      "priority": "high",
+      "source": "[S1] AAD Acne Guideline 2024; [S3] AAD/Dermatology Times Update",
+      "conditions": {
+        "field": "acne_level",
+        "op": "eq",
+        "value": "severe"
+      }
+    },
+    {
+      "id": "R005",
+      "category": "Acne",
+      "field": "acne_types",
+      "condition": "closed_comedone_like / open_comedone_like (mụn ẩn, mụn đầu đen)",
+      "advice": "Salicylic acid (BHA) có tác dụng tiêu sừng (keratolytic), giúp làm mềm và đẩy nhân mụn, làm sạch sâu lỗ chân lông.",
+      "routine": "PM 2-3 lần/tuần: thêm bước toner/serum chứa salicylic acid sau bước làm sạch.",
+      "warning": null,
+      "priority": "low",
+      "source": "[S5] Dermo-cosmetic salicylic acid study (clinicaltrials.gov)",
+      "conditions": {
+        "field": "acne_types",
+        "op": "contains_any",
+        "value": [
+          "closed_comedone_like",
+          "open_comedone_like"
+        ]
+      }
+    },
+    {
+      "id": "R006",
+      "category": "Acne",
+      "field": "acne_types",
+      "condition": "papule_like / pustule_like (sẩn đỏ, mụn mủ)",
+      "advice": "Benzoyl peroxide là lựa chọn chính cho mụn viêm; kết hợp với kháng sinh tại chỗ nếu cần (theo chỉ định bác sĩ) để giảm viêm nhanh hơn.",
+      "routine": "PM: Benzoyl peroxide chấm vùng viêm. Tránh nặn/cạy mụn.",
+      "warning": "Không tự ý dùng kháng sinh bôi kéo dài không kiểm soát — tăng nguy cơ kháng thuốc; nên phối hợp với benzoyl peroxide theo khuyến nghị AAD.",
+      "priority": "medium",
+      "source": "[S1] AAD Acne Guideline 2024",
+      "conditions": {
+        "field": "acne_types",
+        "op": "contains_any",
+        "value": [
+          "papule_like",
+          "pustule_like"
+        ]
+      }
+    },
+    {
+      "id": "R007",
+      "category": "Acne",
+      "field": "acne_types",
+      "condition": "nodule_or_cyst_like (nốt viêm sâu/dạng nang)",
+      "advice": "Đây là dạng mụn viêm sâu, không nên tự điều trị bằng mỹ phẩm OTC.",
+      "routine": null,
+      "warning": "Cần thăm khám bác sĩ da liễu — có thể cần tiêm corticosteroid nội tổn thương hoặc isotretinoin. Tuyệt đối không tự nặn, nguy cơ để lại sẹo rỗ vĩnh viễn cao.",
+      "priority": "high",
+      "source": "[S1] AAD Acne Guideline 2024",
+      "conditions": {
+        "field": "acne_types",
+        "op": "contains_any",
+        "value": [
+          "nodule_or_cyst_like"
+        ]
+      }
+    },
+    {
+      "id": "R008",
+      "category": "Oiliness_Pore",
+      "field": "oiliness_level",
+      "condition": "low",
+      "advice": "Da ít dầu, ưu tiên dưỡng ẩm đủ ẩm để không bị khô căng, tránh sản phẩm kiềm dầu mạnh gây mất cân bằng.",
+      "routine": "AM/PM: Sữa rửa mặt dịu nhẹ (không sulfate mạnh) → Dưỡng ẩm dạng cream/lotion cấp ẩm.",
+      "warning": null,
+      "priority": "low",
+      "source": "[S6] Rosacea/sensitive skin moisturizer guidance",
+      "conditions": {
+        "field": "oiliness_level",
+        "op": "eq",
+        "value": "low"
+      }
+    },
+    {
+      "id": "R009",
+      "category": "Oiliness_Pore",
+      "field": "oiliness_level",
+      "condition": "medium",
+      "advice": "Da dầu vừa phải, có thể dùng gel cleanser nhẹ và sản phẩm chứa niacinamide để cân bằng bã nhờn mà không làm khô da.",
+      "routine": "AM: Gel rửa mặt → Niacinamide serum → Dưỡng ẩm dạng gel/lotion mỏng nhẹ → SPF.",
+      "warning": null,
+      "priority": "low",
+      "source": "[S4] Niacinamide mechanistic review (PMC)",
+      "conditions": {
+        "field": "oiliness_level",
+        "op": "eq",
+        "value": "medium"
+      }
+    },
+    {
+      "id": "R010",
+      "category": "Oiliness_Pore",
+      "field": "oiliness_level",
+      "condition": "high",
+      "advice": "Da dầu nhiều: ưu tiên gel cleanser kiểm soát dầu, niacinamide hoặc BHA để giảm tiết bã nhờn, tránh sản phẩm chứa dầu khoáng/occlusive nặng.",
+      "routine": "AM: Gel cleanser → Niacinamide/BHA toner → Gel dưỡng ẩm không dầu (oil-free, non-comedogenic) → SPF dạng gel/fluid.",
+      "warning": "Tránh dùng kem dưỡng quá đặc/occlusive vì dễ gây bí tắc lỗ chân lông, đặc biệt nếu đồng thời có pore_visibility cao.",
+      "priority": "low",
+      "source": "[S4] Niacinamide mechanistic review (PMC)",
+      "conditions": {
+        "field": "oiliness_level",
+        "op": "eq",
+        "value": "high"
+      }
+    },
+    {
+      "id": "R011",
+      "category": "Oiliness_Pore",
+      "field": "oiliness_zones",
+      "condition": "forehead / nose (vùng T)",
+      "advice": "Tập trung kiểm soát dầu ở vùng T bằng cách dùng sản phẩm kiềm dầu khu trú (spot/zone treatment) thay vì thoa đều toàn mặt nồng độ cao, tránh làm khô vùng má.",
+      "routine": "Áp dụng gel/serum kiềm dầu ưu tiên ở vùng trán/mũi; vùng má dùng dưỡng ẩm thông thường.",
+      "warning": null,
+      "priority": "low",
+      "source": "[S4] Niacinamide mechanistic review (PMC)",
+      "conditions": {
+        "field": "oiliness_zones",
+        "op": "contains_any",
+        "value": [
+          "forehead",
+          "nose"
+        ]
+      }
+    },
+    {
+      "id": "R012",
+      "category": "Oiliness_Pore",
+      "field": "pore_visibility_level",
+      "condition": "low",
+      "advice": "Lỗ chân lông chưa rõ, duy trì làm sạch đều đặn để phòng ngừa bít tắc.",
+      "routine": "Giữ nguyên routine cơ bản 2 bước (làm sạch + dưỡng ẩm) + SPF.",
+      "warning": null,
+      "priority": "low",
+      "source": "[S5] Salicylic acid pore-cleansing study",
+      "conditions": {
+        "field": "pore_visibility_level",
+        "op": "eq",
+        "value": "low"
+      }
+    },
+    {
+      "id": "R013",
+      "category": "Oiliness_Pore",
+      "field": "pore_visibility_level",
+      "condition": "medium",
+      "advice": "Lỗ chân lông bắt đầu rõ ở vùng mũi/má trong — salicylic acid (BHA) giúp làm sạch sâu và se khít theo thời gian.",
+      "routine": "PM 2-3 lần/tuần: thêm bước BHA sau làm sạch, tập trung vùng mũi.",
+      "warning": null,
+      "priority": "low",
+      "source": "[S5] Salicylic acid pore-cleansing study",
+      "conditions": {
+        "field": "pore_visibility_level",
+        "op": "eq",
+        "value": "medium"
+      }
+    },
+    {
+      "id": "R014",
+      "category": "Oiliness_Pore",
+      "field": "pore_visibility_level",
+      "condition": "high",
+      "advice": "Lỗ chân lông to rõ trên nhiều vùng, thường liên quan đến tích tụ bã nhờn — BHA định kỳ kết hợp niacinamide giúp cải thiện theo thời gian (cần kiên trì, không có cách \"thu nhỏ lỗ chân lông\" tức thì).",
+      "routine": "PM (tăng dần lên 3-4 lần/tuần nếu da dung nạp tốt): BHA → Niacinamide → Dưỡng ẩm không dầu.",
+      "warning": "Không chà xát/dùng dụng cụ nặn cơ học mạnh — dễ gây viêm và làm lỗ chân lông trông to hơn theo thời gian.",
+      "priority": "low",
+      "source": "[S5] Salicylic acid pore-cleansing study; [S4] Niacinamide mechanistic review",
+      "conditions": {
+        "field": "pore_visibility_level",
+        "op": "eq",
+        "value": "high"
+      }
+    },
+    {
+      "id": "R015",
+      "category": "Pigmentation_Evenness",
+      "field": "pigmentation_level",
+      "condition": "low",
+      "advice": "Vài đốm thâm rải rác, không đáng lo — duy trì chống nắng để phòng ngừa thâm mới hình thành.",
+      "routine": "AM: bắt buộc SPF30+ phổ rộng, thoa lại sau 2 giờ nếu ra ngoài nắng.",
+      "warning": null,
+      "priority": "low",
+      "source": "[S9] AAD sunscreen guidance (cited in S8)",
+      "conditions": {
+        "field": "pigmentation_level",
+        "op": "eq",
+        "value": "low"
+      }
+    },
+    {
+      "id": "R016",
+      "category": "Pigmentation_Evenness",
+      "field": "pigmentation_level",
+      "condition": "medium",
+      "advice": "Thâm/đốm sậm rõ ở vài vùng — niacinamide (5%) là hoạt chất có bằng chứng lâm sàng giảm sắc tố rõ rệt sau 4-8 tuần dùng đều đặn, an toàn và ít kích ứng hơn hydroquinone.",
+      "routine": "AM: Niacinamide serum → SPF30+ (bắt buộc). PM: Niacinamide hoặc Vitamin C → Dưỡng ẩm. Kiên trì tối thiểu 8 tuần để thấy hiệu quả.",
+      "warning": "Hiệu quả niacinamide cần 4-8 tuần mới rõ rệt — không kỳ vọng cải thiện tức thì. Nếu không dùng kèm chống nắng, vết thâm sẽ tái sậm trở lại.",
+      "priority": "low",
+      "source": "[S4] Niacinamide mechanistic review (PMC); [S7] Hakozaki et al. 2002; [S8] Navarrete-Solís et al. 2011",
+      "conditions": {
+        "field": "pigmentation_level",
+        "op": "eq",
+        "value": "medium"
+      }
+    },
+    {
+      "id": "R017",
+      "category": "Pigmentation_Evenness",
+      "field": "pigmentation_level",
+      "condition": "high",
+      "advice": "Thâm/sạm lan rộng hoặc đậm — kết hợp niacinamide + vitamin C + chống nắng phổ rộng là phác đồ có nhiều bằng chứng nhất; nếu không cải thiện sau 8-12 tuần nên cân nhắc gặp bác sĩ da liễu (có thể cần hydroquinone/retinoid kê đơn).",
+      "routine": "AM: Vitamin C serum → SPF30+ (ưu tiên SPF50, tinted để chặn cả ánh sáng nhìn thấy). PM: Niacinamide → Dưỡng ẩm phục hồi.",
+      "warning": "Thâm lan rộng có thể là dấu hiệu sạm da do hormone (nám) — cần bác sĩ da liễu chẩn đoán đúng nguyên nhân trước khi điều trị, vì các phác đồ điều trị nám/thâm thường khác nhau.",
+      "priority": "medium",
+      "source": "[S7] Hakozaki et al. 2002; [S8] Navarrete-Solís et al. 2011; [S10] PIH sunscreen RCT 2025",
+      "conditions": {
+        "field": "pigmentation_level",
+        "op": "eq",
+        "value": "high"
+      }
+    },
+    {
+      "id": "R018",
+      "category": "Pigmentation_Evenness",
+      "field": "skin_tone_evenness_level",
+      "condition": "medium / high",
+      "advice": "Da không đều màu thường cải thiện cùng phác đồ trị thâm (niacinamide + vitamin C + chống nắng) vì cùng cơ chế giảm chuyển melanin.",
+      "routine": "Áp dụng routine giống pigmentation_level=medium/high ở trên.",
+      "warning": null,
+      "priority": "low",
+      "source": "[S4] Niacinamide mechanistic review (PMC)",
+      "conditions": {
+        "field": "skin_tone_evenness_level",
+        "op": "in",
+        "value": [
+          "medium",
+          "high"
+        ]
+      }
+    },
+    {
+      "id": "R019",
+      "category": "Redness_Sensitivity",
+      "field": "visible_redness_level",
+      "condition": "low",
+      "advice": "Da ít đỏ, không cần điều chỉnh đặc biệt — vẫn nên ưu tiên sản phẩm fragrance-free nếu da thuộc nhóm nhạy cảm theo skinType.",
+      "routine": "Routine cơ bản, không cần thay đổi.",
+      "warning": null,
+      "priority": "low",
+      "source": "[S11] AAD/Rosacea.org fragrance guidance",
+      "conditions": {
+        "field": "visible_redness_level",
+        "op": "eq",
+        "value": "low"
+      }
+    },
+    {
+      "id": "R020",
+      "category": "Redness_Sensitivity",
+      "field": "visible_redness_level",
+      "condition": "medium",
+      "advice": "Đỏ da cục bộ — ưu tiên sản phẩm dịu nhẹ chứa ceramide, niacinamide, panthenol để hỗ trợ hàng rào bảo vệ da; tránh sản phẩm có cồn khô (denatured alcohol), tinh dầu bạc hà/menthol.",
+      "routine": "AM/PM: Sữa rửa mặt không xà phòng (soap-free) → Serum làm dịu (niacinamide/panthenol) → Kem dưỡng phục hồi hàng rào da (ceramide).",
+      "warning": "Tránh exfoliant mạnh (AHA/BHA nồng độ cao, scrub vật lý) trong giai đoạn da đang đỏ. Patch test mọi sản phẩm mới trước khi dùng toàn mặt.",
+      "priority": "medium",
+      "source": "[S6] Rosacea.org skincare guide; [S11] AAD fragrance/contact dermatitis",
+      "conditions": {
+        "field": "visible_redness_level",
+        "op": "eq",
+        "value": "medium"
+      }
+    },
+    {
+      "id": "R021",
+      "category": "Redness_Sensitivity",
+      "field": "visible_redness_level",
+      "condition": "high",
+      "advice": "Đỏ da rõ/lan rộng — nên dùng phác đồ tối giản (gentle cleanser + moisturizer + SPF khoáng), loại bỏ toàn bộ active gây kích ứng cho đến khi da ổn định.",
+      "routine": "AM/PM: Chỉ giữ 2-3 bước: làm sạch dịu nhẹ → dưỡng ẩm phục hồi → SPF khoáng (zinc oxide) cho ban ngày. Không thêm active mới.",
+      "warning": "Đỏ da lan rộng/kéo dài có thể là dấu hiệu rosacea — khuyến nghị gặp bác sĩ da liễu để chẩn đoán đúng, vì rosacea cần điều trị chuyên biệt (không tự xử lý bằng mỹ phẩm).",
+      "priority": "high",
+      "source": "[S6] Rosacea.org skincare guide; [S12] AAD 7 rosacea tips; [S13] SolRX rosacea sunscreen guide",
+      "conditions": {
+        "field": "visible_redness_level",
+        "op": "eq",
+        "value": "high"
+      }
+    },
+    {
+      "id": "R022",
+      "category": "Redness_Sensitivity",
+      "field": "skinType + visible_redness",
+      "condition": "sensitive + medium/high",
+      "advice": "Khi skinType=sensitive kết hợp đỏ da từ ảnh, mức độ ưu tiên \"an toàn trước hiệu quả\" — luôn test sản phẩm mới trước khi dùng toàn mặt, ưu tiên dòng \"for sensitive skin / dermatologist tested\".",
+      "routine": "Patch test 48-72h ở vùng cổ tay/sau tai trước khi dùng sản phẩm mới lên mặt.",
+      "warning": "Không kết hợp nhiều active mới cùng lúc — chỉ thêm 1 sản phẩm mới mỗi lần, theo dõi 1-2 tuần trước khi thêm tiếp.",
+      "priority": "medium",
+      "source": "[S14] Healthline AAD self patch-test guide",
+      "conditions": {
+        "logic": "AND",
+        "rules": [
+          {
+            "field": "skinType",
+            "op": "eq",
+            "value": "sensitive"
+          },
+          {
+            "field": "visible_redness_level",
+            "op": "in",
+            "value": [
+              "medium",
+              "high"
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "id": "R023",
+      "category": "Wrinkle_AntiAging",
+      "field": "visible_wrinkle_level",
+      "condition": "low",
+      "advice": "Chưa có nếp nhăn rõ — phòng ngừa lão hóa bằng chống nắng hàng ngày là biện pháp hiệu quả và an toàn nhất.",
+      "routine": "AM: SPF30+ mỗi ngày kể cả trời râm/trong nhà có cửa sổ.",
+      "warning": null,
+      "priority": "low",
+      "source": "[S15] AAD retinoid/retinol article",
+      "conditions": {
+        "field": "visible_wrinkle_level",
+        "op": "eq",
+        "value": "low"
+      }
+    },
+    {
+      "id": "R024",
+      "category": "Wrinkle_AntiAging",
+      "field": "visible_wrinkle_level",
+      "condition": "medium",
+      "advice": "Nếp nhăn nhẹ ở vùng giới hạn — retinoid/retinol tại chỗ là hoạt chất có bằng chứng mạnh nhất cho cải thiện nếp nhăn nhẹ và sắc tố không đều do ánh nắng.",
+      "routine": "PM (bắt đầu cách ngày, tăng dần): Retinol/retinoid nồng độ thấp → Dưỡng ẩm. AM: SPF30+ bắt buộc.",
+      "warning": "Retinoid làm da nhạy cảm hơn với ánh nắng — bắt buộc dùng kèm SPF ban ngày. Kết quả rõ rệt cần 3-6 tháng dùng đều đặn, không kỳ vọng nhanh.",
+      "priority": "medium",
+      "source": "[S15] AAD retinoid/retinol article; [S16] Vitamin C/Retinoid/Sunscreen clinical practice review",
+      "conditions": {
+        "field": "visible_wrinkle_level",
+        "op": "eq",
+        "value": "medium"
+      }
+    },
+    {
+      "id": "R025",
+      "category": "Wrinkle_AntiAging",
+      "field": "visible_wrinkle_level",
+      "condition": "high",
+      "advice": "Nếp nhăn rõ/nhiều vùng — retinoid nồng độ cao hơn hoặc kê đơn (tretinoin) cho hiệu quả tốt hơn, nên cân nhắc tư vấn da liễu nếu muốn đẩy nhanh hiệu quả.",
+      "routine": "PM: Retinoid (tăng dần nồng độ/tần suất theo mức dung nạp của da) → Dưỡng ẩm phục hồi. AM: Vitamin C + SPF30-50.",
+      "warning": "Không dùng nếu đang mang thai/cho con bú (retinoid chống chỉ định). Nếu da đồng thời có visible_redness cao hoặc skinType=sensitive, cần bắt đầu cực kỳ từ từ hoặc cân nhắc bakuchiol (thay thế dịu nhẹ hơn).",
+      "priority": "high",
+      "source": "[S15] AAD retinoid/retinol article; [S17] Retinol pregnancy safety review; [S18] Retinol alternatives (bakuchiol)",
+      "conditions": {
+        "field": "visible_wrinkle_level",
+        "op": "eq",
+        "value": "high"
+      }
+    },
+    {
+      "id": "R026",
+      "category": "Goals_Conflict",
+      "field": "skinGoals",
+      "condition": "anti_aging + visible_redness=medium/high HOẶC skinType=sensitive",
+      "advice": "Ưu tiên hoạt chất nhẹ hơn (bakuchiol, retinyl ester) thay vì retinol/tretinoin mạnh để giảm rủi ro kích ứng trong khi vẫn hướng tới mục tiêu chống lão hóa.",
+      "routine": "PM: Bakuchiol serum thay vì retinol → Dưỡng ẩm phục hồi. Theo dõi phản ứng da 2-4 tuần trước khi cân nhắc chuyển sang retinoid thật.",
+      "warning": "Đây là cảnh báo XUNG ĐỘT: mục tiêu của user (anti_aging) đối lập với tình trạng da đo được (dễ kích ứng) — cần ưu tiên an toàn da trước, không áp dụng routine anti-aging mạnh ngay.",
+      "priority": "high",
+      "source": "[S18] Retinol alternatives — bakuchiol review (Medical News Today)",
+      "conditions": {
+        "logic": "AND",
+        "rules": [
+          {
+            "field": "skinGoals",
+            "op": "contains",
+            "value": "anti_aging"
+          },
+          {
+            "logic": "OR",
+            "rules": [
+              {
+                "field": "visible_redness_level",
+                "op": "in",
+                "value": [
+                  "medium",
+                  "high"
+                ]
+              },
+              {
+                "field": "skinType",
+                "op": "eq",
+                "value": "sensitive"
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "id": "R027",
+      "category": "Goals_Conflict",
+      "field": "skinGoals",
+      "condition": "brightening + avoidedIngredients chứa hydroquinone (hoặc user không muốn dùng acid mạnh)",
+      "advice": "Niacinamide là lựa chọn thay thế có bằng chứng lâm sàng tương đương hydroquinone trong điều trị tăng sắc tố (nghiên cứu trên bệnh nhân nám), với độ kích ứng thấp hơn — phù hợp khi user muốn tránh hoạt chất mạnh.",
+      "routine": "AM/PM: Niacinamide 5% + Vitamin C buổi sáng + SPF.",
+      "warning": null,
+      "priority": "low",
+      "source": "[S8] Navarrete-Solís et al. 2011 (niacinamide vs hydroquinone)",
+      "conditions": {
+        "logic": "AND",
+        "rules": [
+          {
+            "field": "skinGoals",
+            "op": "contains",
+            "value": "brightening"
+          },
+          {
+            "logic": "OR",
+            "rules": [
+              {
+                "field": "avoidedIngredients",
+                "op": "contains",
+                "value": "hydroquinone"
+              },
+              {
+                "field": "avoidedIngredients",
+                "op": "contains",
+                "value": "strong_acids"
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "id": "R028",
+      "category": "Goals_Conflict",
+      "field": "skinGoals + acne_level",
+      "condition": "anti_aging hoặc pore_control + acne_level=severe",
+      "advice": "Khi da đang có mụn nặng, nên ưu tiên kiểm soát mụn trước — thêm retinoid chống lão hóa hoặc BHA mạnh cùng lúc với điều trị mụn dễ gây quá tải kích ứng da (over-exfoliation).",
+      "routine": "Tạm hoãn các bước \"thêm active mới cho mục tiêu phụ\" cho đến khi acne_level cải thiện về mild/none.",
+      "warning": "Mục tiêu phụ (anti_aging/pore_control) cần CHỜ — không kết hợp nhiều active mạnh cùng lúc khi da đang viêm nặng, nguy cơ kích ứng/sẹo tăng cao.",
+      "priority": "high",
+      "source": "[S19] H-Clinic — retinol + acid combination irritation risk",
+      "conditions": {
+        "logic": "AND",
+        "rules": [
+          {
+            "logic": "OR",
+            "rules": [
+              {
+                "field": "skinGoals",
+                "op": "contains",
+                "value": "anti_aging"
+              },
+              {
+                "field": "skinGoals",
+                "op": "contains",
+                "value": "pore_control"
+              }
+            ]
+          },
+          {
+            "field": "acne_level",
+            "op": "eq",
+            "value": "severe"
+          }
+        ]
+      }
+    },
+    {
+      "id": "R029",
+      "category": "Goals_Conflict",
+      "field": "avoidedIngredients",
+      "condition": "user chọn tránh \"fragrance\" / \"alcohol\" và visible_redness=medium/high",
+      "advice": "Phù hợp và nên được tôn trọng — fragrance là nguyên nhân gây viêm da tiếp xúc dị ứng phổ biến nhất theo AAD, đặc biệt quan trọng với da đang đỏ.",
+      "routine": "Routine ưu tiên dòng \"fragrance-free\", \"alcohol-free\" cho mọi bước.",
+      "warning": null,
+      "priority": "low",
+      "source": "[S11] AAD — fragrance & contact dermatitis (qua Rosacea.org)",
+      "conditions": {
+        "logic": "AND",
+        "rules": [
+          {
+            "logic": "OR",
+            "rules": [
+              {
+                "field": "avoidedIngredients",
+                "op": "contains",
+                "value": "fragrance"
+              },
+              {
+                "field": "avoidedIngredients",
+                "op": "contains",
+                "value": "alcohol"
+              }
+            ]
+          },
+          {
+            "field": "visible_redness_level",
+            "op": "in",
+            "value": [
+              "medium",
+              "high"
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "id": "R030",
+      "category": "Goals_Conflict",
+      "field": "budgetRange",
+      "condition": "thấp + acne_level=moderate/severe HOẶC pigmentation=high",
+      "advice": "Khi ngân sách hạn chế nhưng tình trạng da cần điều trị tích cực, ưu tiên gợi ý 1-2 hoạt chất cốt lõi (vd: benzoyl peroxide OTC, niacinamide) thay vì routine nhiều bước/nhiều sản phẩm đắt tiền.",
+      "routine": "Routine tối giản 3 bước: làm sạch → 1 active cốt lõi theo vấn đề chính → SPF.",
+      "warning": null,
+      "priority": "low",
+      "source": "[S1] AAD Acne Guideline (OTC options); [S4] Niacinamide review",
+      "conditions": {
+        "logic": "AND",
+        "rules": [
+          {
+            "field": "budgetRange",
+            "op": "eq",
+            "value": "low"
+          },
+          {
+            "logic": "OR",
+            "rules": [
+              {
+                "field": "acne_level",
+                "op": "in",
+                "value": [
+                  "moderate",
+                  "severe"
+                ]
+              },
+              {
+                "field": "pigmentation_level",
+                "op": "eq",
+                "value": "high"
+              }
+            ]
+          }
+        ]
+      }
+    }
+  ],
+  "sources": {
+    "S1": {
+      "name": "AAD Issues New Guidelines for Clinical Management of Acne Vulgaris (Dermatology Advisor, 2024)",
+      "type": "Guideline tổng hợp",
+      "link": "https://www.dermatologyadvisor.com/features/aad-issues-new-guidelines-for-clinical-management-of-acne-vulgaris/"
+    },
+    "S2": {
+      "name": "Guidelines of care for the management of acne vulgaris — Journal of the American Academy of Dermatology (JAAD)",
+      "type": "Clinical guideline (peer-reviewed)",
+      "link": "https://www.jaad.org/article/S0190-9622(23)03389-3/fulltext"
+    },
+    "S3": {
+      "name": "AAD Releases Updated Guidelines for the Management of Acne Vulgaris (Dermatology Times, 2024)",
+      "type": "Guideline tổng hợp",
+      "link": "https://www.dermatologytimes.com/view/aad-releases-updated-guidelines-for-the-management-of-acne-vulgaris"
+    },
+    "S4": {
+      "name": "Mechanistic Basis and Clinical Evidence for the Applications of Nicotinamide (Niacinamide) to Control Skin Aging and Pigmentation — PMC",
+      "type": "Review khoa học (peer-reviewed)",
+      "link": "https://pmc.ncbi.nlm.nih.gov/articles/PMC8389214/"
+    },
+    "S5": {
+      "name": "Anti-acne Efficacy Study — Adapalene/Benzoyl Peroxide + Dermo-cosmetic Salicylic Acid (ClinicalTrials.gov)",
+      "type": "Clinical trial protocol",
+      "link": "https://cdn.clinicaltrials.gov/large-docs/47/NCT03832647/Prot_SAP_000.pdf"
+    },
+    "S6": {
+      "name": "Rosacea Skin Care & Cosmetics — National Rosacea Society (Rosacea.org)",
+      "type": "Hướng dẫn lâm sàng/bệnh nhân",
+      "link": "http://www.rosacea.org/patients/skin-care-and-cosmetics"
+    },
+    "S7": {
+      "name": "Hakozaki et al. 2002 — Nicotinamide skin depigmenting efficacy study (British Journal of Dermatology, qua PMC review)",
+      "type": "RCT split-face (peer-reviewed)",
+      "link": "https://pmc.ncbi.nlm.nih.gov/articles/PMC8389214/"
+    },
+    "S8": {
+      "name": "Navarrete-Solís et al. 2011 — Niacinamide vs Hydroquinone in melasma patients (Dermatology Research and Practice)",
+      "type": "RCT (peer-reviewed)",
+      "link": "https://dot3b.com/blogs/skincare-magazine/niacinamide-for-dark-spots-does-it-work"
+    },
+    "S9": {
+      "name": "AAD — sunscreen & photoprotection recommendation (qua Vitamin C/Retinoid/Sunscreen clinical review)",
+      "type": "Guideline tổng hợp",
+      "link": "https://acofp.org/news-and-publications/journal/article-detail/vol-16-no-3-fall-2024/vitamin-c-topical-retinoids-sunscreen-in-clinical-practice-essentials-for-family-physicians"
+    },
+    "S10": {
+      "name": "RCT: Broad-Spectrum Sunscreen with Sclareolide and Niacinamide for Prevention of PIH in Skin of Color (Dermatology and Therapy, 2025)",
+      "type": "RCT (peer-reviewed)",
+      "link": "https://link.springer.com/article/10.1007/s13555-025-01586-w"
+    },
+    "S11": {
+      "name": "American Academy of Dermatology — Fragrance as leading cause of allergic contact dermatitis (qua Rosacea.org)",
+      "type": "Guideline tổng hợp",
+      "link": "http://www.rosacea.org/patients/skin-care-and-cosmetics"
+    },
+    "S12": {
+      "name": "AAD — 7 rosacea skin care tips dermatologists recommend",
+      "type": "Hướng dẫn chính thức AAD",
+      "link": "https://www.aad.org/public/diseases/rosacea/triggers/tips"
+    },
+    "S13": {
+      "name": "SolRX — Best Sunscreen for Rosacea: Zinc Oxide, Fragrance-Free guidance",
+      "type": "Hướng dẫn sản phẩm/lâm sàng",
+      "link": "https://www.solrx.com/blogs/articles/best-sunscreen-for-rosacea"
+    },
+    "S14": {
+      "name": "Healthline — How to Perform a Self Skin Patch Test (theo hướng dẫn AAD)",
+      "type": "Hướng dẫn dựa trên AAD",
+      "link": "https://www.healthline.com/health/self-skin-patch-test"
+    },
+    "S15": {
+      "name": "AAD — Retinoid or retinol? (aad.org/public/everyday-care)",
+      "type": "Hướng dẫn chính thức AAD",
+      "link": "https://www.aad.org/public/everyday-care/skin-care-secrets/anti-aging/retinoid-retinol"
+    },
+    "S16": {
+      "name": "Vitamin C, Topical Retinoids, and Sunscreen in Clinical Practice (ACOFP Journal)",
+      "type": "Review lâm sàng (peer-reviewed)",
+      "link": "https://acofp.org/news-and-publications/journal/article-detail/vol-16-no-3-fall-2024/vitamin-c-topical-retinoids-sunscreen-in-clinical-practice-essentials-for-family-physicians"
+    },
+    "S17": {
+      "name": "The Science of Retinol and Retinoids in Pregnancy — Skin Type Solutions",
+      "type": "Review lâm sàng",
+      "link": "https://skintypesolutions.com/blogs/skincare/retinol-and-retinoids-in-pregnancy"
+    },
+    "S18": {
+      "name": "Retinol alternatives: Options for sensitive skin and pregnancy (Medical News Today, theo khuyến nghị AAD)",
+      "type": "Tổng hợp y khoa",
+      "link": "https://www.medicalnewstoday.com/articles/pregnancy-safe-retinol-alternative"
+    },
+    "S19": {
+      "name": "H-Clinic — Retinol and SPF: irritation risk when combining multiple actives (theo khuyến nghị AAD)",
+      "type": "Tổng hợp y khoa",
+      "link": "https://h-clinic.com.ua/en/skin-burning-after-retinol-and-spf/"
+    }
+  }
+}

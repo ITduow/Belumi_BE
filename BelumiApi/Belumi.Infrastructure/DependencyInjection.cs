@@ -65,6 +65,7 @@ public static class DependencyInjection
         services.AddScoped<ChatToolCallTracker>();
         services.AddScoped<BelumiChatPlugin>();
         services.AddScoped<IOpenAiChatService, OpenAiChatService>();
+        services.AddSingleton<AdviceRuleEngine>();
         services.AddHttpClient<IInciApiClient, InciApiClient>((provider, client) =>
         {
             var options = provider.GetRequiredService<Microsoft.Extensions.Options.IOptions<InciApiOptions>>().Value;

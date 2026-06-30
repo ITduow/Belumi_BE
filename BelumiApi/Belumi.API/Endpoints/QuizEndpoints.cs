@@ -20,7 +20,7 @@ public static class QuizEndpoints
     // ── Allowed enum values ──────────────────────────────────────────────────
     private static readonly HashSet<string> ValidGenders        = ["female", "male", "other"];
     private static readonly HashSet<string> ValidAgeGroups      = ["under18", "18-22", "23-26", "over27"];
-    private static readonly HashSet<string> ValidSkinTypes      = ["normal", "dry", "combination", "oily"];
+    private static readonly HashSet<string> ValidSkinTypes      = ["normal", "dry", "combination", "oily", "sensitive"];
     private static readonly HashSet<string> ValidGoals          = ["hydration", "brightening", "pore_control", "dark_spot", "anti_aging", "soothing"];
     private static readonly HashSet<string> ValidSensitivities  = ["stable", "mild", "sensitive"];
     private static readonly HashSet<string> ValidBudgets        = ["under200k", "200-300k", "300-500k", "500k-1m", "over1m"];

@@ -46,6 +46,66 @@ public class SkinAnalysisResult
 
     [JsonPropertyName("description")]
     public string Description { get; set; } = string.Empty;
+
+    [JsonPropertyName("advice")]
+    public List<SkinAdviceDto> Advice { get; set; } = new();
+
+    [JsonPropertyName("routine")]
+    public List<SkinRoutineStepDto> Routine { get; set; } = new();
+
+    [JsonPropertyName("warnings")]
+    public List<SkinWarningDto> Warnings { get; set; } = new();
+
+    [JsonPropertyName("disclaimer")]
+    public string Disclaimer { get; set; } = string.Empty;
+}
+
+public class SkinAdviceDto
+{
+    [JsonPropertyName("concern")]
+    public string Concern { get; set; } = string.Empty;
+
+    [JsonPropertyName("content")]
+    public string Content { get; set; } = string.Empty;
+
+    [JsonPropertyName("priority")]
+    public string Priority { get; set; } = "low";
+}
+
+public class SkinRoutineStepDto
+{
+    [JsonPropertyName("period")]
+    public string Period { get; set; } = "AM"; // AM, PM, or ANY
+
+    [JsonPropertyName("step")]
+    public int Step { get; set; }
+
+    [JsonPropertyName("category")]
+    public string Category { get; set; } = string.Empty;
+
+    [JsonPropertyName("content")]
+    public string Content { get; set; } = string.Empty;
+}
+
+public class SkinWarningDto
+{
+    [JsonPropertyName("content")]
+    public string Content { get; set; } = string.Empty;
+
+    [JsonPropertyName("priority")]
+    public string Priority { get; set; } = "low";
+
+    [JsonPropertyName("source")]
+    public string Source { get; set; } = string.Empty;
+}
+
+public sealed record SkinAnalysisContext
+{
+    public string SkinType { get; init; } = string.Empty;
+    public string? SkinSensitivity { get; init; }
+    public IReadOnlyCollection<string> SkinGoals { get; init; } = [];
+    public IReadOnlyCollection<string> AvoidedIngredients { get; init; } = [];
+    public string? BudgetRange { get; init; }
 }
 
 public class AnalysisResponse
