@@ -46,15 +46,28 @@ public sealed class AdviceRuleEngine
             .Take(MaxAdvice)
             .ToList();
 
-        var routineSteps = new List<SkinRoutineStepDto>();
-        var routineStrings = DistinctTake(matched.Select(rule => rule.Routine), MaxRoutine);
-        foreach (var rStr in routineStrings)
+        // Pick exactly 1 routine (the most relevant one), not merge all.
+        // Priority: condition-specific (Acne, Pigmentation, Aging, Dullness, etc.) > skinType base routine
+        var conditionCategories = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
         {
-            routineSteps.AddRange(ParseRoutineString(rStr));
+            "Acne", "Pigmentation_Evenness", "Wrinkle_AntiAging", "Dullness", "Redness_Sensitivity"
+        };
+
+        var bestRoutineRule = matched.FirstOrDefault(r =>
+            !string.IsNullOrWhiteSpace(r.Routine) &&
+            conditionCategories.Contains(r.Category));
+
+        bestRoutineRule ??= matched.FirstOrDefault(r =>
+            !string.IsNullOrWhiteSpace(r.Routine) &&
+            r.Category.StartsWith("Basic Routine", StringComparison.OrdinalIgnoreCase));
+
+        bestRoutineRule ??= matched.FirstOrDefault(r => !string.IsNullOrWhiteSpace(r.Routine));
+
+        var routineSteps = new List<SkinRoutineStepDto>();
+        if (bestRoutineRule?.Routine != null)
+        {
+            routineSteps.AddRange(ParseRoutineString(bestRoutineRule.Routine));
         }
-        
-        // Basic grouping and re-indexing
-        routineSteps = GroupAndSortRoutine(routineSteps);
 
         var warningsList = matched
             .Where(rule => PriorityRank(rule.Priority) >= PriorityRank("medium") || IsConflict(rule))
@@ -112,67 +125,80 @@ public sealed class AdviceRuleEngine
         var steps = new List<SkinRoutineStepDto>();
         if (string.IsNullOrWhiteSpace(routineStr)) return steps;
 
-        // Extract AM and PM sections using regex-like scan
-        var amIdx = routineStr.IndexOf("AM:", StringComparison.OrdinalIgnoreCase);
-        var pmIdx = routineStr.IndexOf("PM:", StringComparison.OrdinalIgnoreCase);
+        // Try splitting by " / " or " /" which separates Morning and Night in the Vietnamese format
+        string[] parts = routineStr.Split(new[] { " / Tối:", " / PM:" }, StringSplitOptions.None);
+        string amStr = parts[0];
+        string? pmStr = parts.Length > 1 ? parts[1] : null;
 
-        if (amIdx == -1 && pmIdx == -1)
+        // If no " / " separator, try to manually find the indexes
+        if (pmStr == null)
         {
-            // No period marker: split by → only (not by '-' to avoid breaking "8-12 tuần")
-            var parts = SplitByArrow(routineStr);
-            for (int i = 0; i < parts.Count; i++)
-                steps.Add(new SkinRoutineStepDto { Period = "ANY", Step = i + 1, Content = parts[i] });
-            return steps;
-        }
+            var amIdx = routineStr.IndexOf("AM:", StringComparison.OrdinalIgnoreCase);
+            if (amIdx == -1) amIdx = routineStr.IndexOf("Sáng:", StringComparison.OrdinalIgnoreCase);
 
-        string? amPart = null;
-        string? pmPart = null;
+            var pmIdx = routineStr.IndexOf("PM:", StringComparison.OrdinalIgnoreCase);
+            if (pmIdx == -1) pmIdx = routineStr.IndexOf("Tối:", StringComparison.OrdinalIgnoreCase);
 
-        if (amIdx != -1 && pmIdx != -1)
-        {
-            if (amIdx < pmIdx)
+            if (amIdx == -1 && pmIdx == -1)
             {
-                amPart = routineStr.Substring(amIdx + 3, pmIdx - amIdx - 3);
-                pmPart = routineStr.Substring(pmIdx + 3);
+                var parsedParts = SplitIntoSteps(routineStr);
+                for (int i = 0; i < parsedParts.Count; i++)
+                    steps.Add(new SkinRoutineStepDto { Period = "ANY", Step = i + 1, Content = parsedParts[i] });
+                return steps;
             }
-            else
+
+            if (amIdx != -1 && pmIdx != -1)
             {
-                pmPart = routineStr.Substring(pmIdx + 3, amIdx - pmIdx - 3);
-                amPart = routineStr.Substring(amIdx + 3);
+                if (amIdx < pmIdx)
+                {
+                    amStr = routineStr.Substring(amIdx, pmIdx - amIdx);
+                    pmStr = routineStr.Substring(pmIdx);
+                }
+                else
+                {
+                    pmStr = routineStr.Substring(pmIdx, amIdx - pmIdx);
+                    amStr = routineStr.Substring(amIdx);
+                }
+            }
+            else if (amIdx != -1)
+            {
+                amStr = routineStr.Substring(amIdx);
+            }
+            else if (pmIdx != -1)
+            {
+                amStr = "";
+                pmStr = routineStr.Substring(pmIdx);
             }
         }
-        else if (amIdx != -1)
+
+        // Clean up prefix for AM
+        amStr = System.Text.RegularExpressions.Regex.Replace(amStr, @"^(AM:|Sáng:)\s*", "", System.Text.RegularExpressions.RegexOptions.IgnoreCase);
+        if (!string.IsNullOrWhiteSpace(amStr))
         {
-            amPart = routineStr.Substring(amIdx + 3);
-        }
-        else if (pmIdx != -1)
-        {
-            pmPart = routineStr.Substring(pmIdx + 3);
+            var amParsed = SplitIntoSteps(amStr);
+            for (int i = 0; i < amParsed.Count; i++)
+                steps.Add(new SkinRoutineStepDto { Period = "AM", Step = i + 1, Content = amParsed[i] });
         }
 
-        if (!string.IsNullOrWhiteSpace(amPart))
+        // Clean up prefix for PM (if it wasn't split by " / Tối:" which already removed it)
+        if (pmStr != null)
         {
-            var parts = SplitByArrow(amPart);
-            for (int i = 0; i < parts.Count; i++)
-                steps.Add(new SkinRoutineStepDto { Period = "AM", Step = i + 1, Content = parts[i] });
-        }
-
-        if (!string.IsNullOrWhiteSpace(pmPart))
-        {
-            var parts = SplitByArrow(pmPart);
-            for (int i = 0; i < parts.Count; i++)
-                steps.Add(new SkinRoutineStepDto { Period = "PM", Step = i + 1, Content = parts[i] });
+            pmStr = System.Text.RegularExpressions.Regex.Replace(pmStr, @"^(PM:|Tối:)\s*", "", System.Text.RegularExpressions.RegexOptions.IgnoreCase);
+            if (!string.IsNullOrWhiteSpace(pmStr))
+            {
+                var pmParsed = SplitIntoSteps(pmStr);
+                for (int i = 0; i < pmParsed.Count; i++)
+                    steps.Add(new SkinRoutineStepDto { Period = "PM", Step = i + 1, Content = pmParsed[i] });
+            }
         }
 
         return steps;
     }
 
     /// <summary>
-    /// Split only on → arrow. Each segment is trimmed and trailing period/comma removed.
-    /// Falls back to splitting on ". " (period+space) if no arrows found.
-    /// Does NOT split on '-' to preserve ranges like "8-12 tuần".
+    /// Split by → or by numbered list "1. ", "2. "
     /// </summary>
-    private static List<string> SplitByArrow(string text)
+    private static List<string> SplitIntoSteps(string text)
     {
         var trimmed = text.Trim().TrimEnd('.');
         
@@ -185,31 +211,53 @@ public sealed class AdviceRuleEngine
                 .ToList();
         }
 
-        // No arrows: keep as single step (don't split on ". " — may cause false splits)
+        // Split by "1. ", "2. ", etc., using regex. 
+        // e.g. "1. Rửa mặt: ... 2. Toner: ..." -> ["Rửa mặt: ...", "Toner: ..."]
+        var matches = System.Text.RegularExpressions.Regex.Split(trimmed, @"\b\d+\.\s");
+        
+        var result = matches
+            .Select(s => s.Trim().TrimEnd('.').Trim())
+            .Where(s => s.Length > 1)
+            .ToList();
+            
+        if (result.Count > 0) return result;
+
         return trimmed.Length > 1 ? [trimmed] : [];
     }
 
-    private static List<SkinRoutineStepDto> GroupAndSortRoutine(List<SkinRoutineStepDto> steps)
+    public static List<SkinRoutineStepDto> GroupAndSortRoutine(List<SkinRoutineStepDto> steps)
     {
         var result = new List<SkinRoutineStepDto>();
         var grouped = steps.GroupBy(s => s.Period);
         
         foreach (var group in grouped)
         {
-            // Simple deduplication based on content similarity or just distinct
             var distinctSteps = group
                 .Select(s => s.Content.Trim())
                 .Distinct(StringComparer.OrdinalIgnoreCase)
                 .ToList();
+
+            var filteredSteps = new List<string>();
+            var seenCategories = new HashSet<string>();
+
+            foreach (var step in distinctSteps)
+            {
+                var cat = DetermineCategory(step);
+                // Allow multiple treatments, but deduplicate basic steps like Cleanser, Toner, Moisturizer, Sunscreen
+                if (cat == "Treatment" || cat == "Khác" || seenCategories.Add(cat))
+                {
+                    filteredSteps.Add(step);
+                }
+            }
                 
-            for (int i = 0; i < distinctSteps.Count; i++)
+            for (int i = 0; i < filteredSteps.Count; i++)
             {
                 result.Add(new SkinRoutineStepDto 
                 { 
                     Period = group.Key, 
                     Step = i + 1, 
-                    Content = distinctSteps[i],
-                    Category = DetermineCategory(distinctSteps[i])
+                    Content = filteredSteps[i],
+                    Category = DetermineCategory(filteredSteps[i])
                 });
             }
         }
