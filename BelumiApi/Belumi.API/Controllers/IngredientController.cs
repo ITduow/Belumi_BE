@@ -78,7 +78,9 @@ public sealed class IngredientController(IAiBeautyService aiBeautyService, Belum
             Name = request.Name.Trim(),
             Category = request.Category.Trim(),
             Description = request.Description.Trim(),
-            Links = request.Links.Trim()
+            Links = request.Links.Trim(),
+            SuitableSkin = request.SuitableSkin?.Trim() ?? string.Empty,
+            NotForSkin = request.NotForSkin?.Trim() ?? string.Empty
         };
 
         db.Ingredients.Add(ingredient);
@@ -108,6 +110,8 @@ public sealed class IngredientController(IAiBeautyService aiBeautyService, Belum
         ingredient.Category = request.Category.Trim();
         ingredient.Description = request.Description.Trim();
         ingredient.Links = request.Links.Trim();
+        ingredient.SuitableSkin = request.SuitableSkin?.Trim() ?? string.Empty;
+        ingredient.NotForSkin = request.NotForSkin?.Trim() ?? string.Empty;
 
         await db.SaveChangesAsync(cancellationToken);
         return Ok(ToDto(ingredient));
@@ -140,6 +144,11 @@ public sealed class IngredientController(IAiBeautyService aiBeautyService, Belum
     [Authorize]
     public async Task<ActionResult<IngredientScanResult>> AnalyzeText(IngredientAnalyzeTextRequest request, CancellationToken cancellationToken)
     {
+        if (!await User.CheckDailyLimitAsync(db, "ingredient"))
+        {
+            return StatusCode(429, new { message = "Bạn đã dùng hết lượt tra cứu miễn phí hôm nay. Vui lòng nâng cấp lên gói Paid để sử dụng không giới hạn!" });
+        }
+
         var result = aiBeautyService.AnalyzeIngredientLabel(new IngredientScanRequest(request.InputText, request.SkinType, request.Allergies));
         await SaveLookupAsync(request.UserId == Guid.Empty ? User.GetUserId() : request.UserId, request.InputText, null, result, cancellationToken);
         return Ok(result);
@@ -149,6 +158,11 @@ public sealed class IngredientController(IAiBeautyService aiBeautyService, Belum
     [Authorize]
     public async Task<ActionResult<IngredientScanResult>> AnalyzeImage(IngredientAnalyzeImageRequest request, CancellationToken cancellationToken)
     {
+        if (!await User.CheckDailyLimitAsync(db, "ingredient"))
+        {
+            return StatusCode(429, new { message = "Bạn đã dùng hết lượt tra cứu miễn phí hôm nay. Vui lòng nâng cấp lên gói Paid để sử dụng không giới hạn!" });
+        }
+
         var result = aiBeautyService.AnalyzeIngredientLabel(new IngredientScanRequest(request.ImageUrl, request.SkinType, request.Allergies));
         await SaveLookupAsync(request.UserId == Guid.Empty ? User.GetUserId() : request.UserId, request.OcrText ?? request.ImageUrl, request.ImageUrl, result, cancellationToken);
         return Ok(result);
@@ -201,8 +215,62 @@ public sealed class IngredientController(IAiBeautyService aiBeautyService, Belum
             ingredient.Category,
             ingredient.Description,
             ingredient.Links,
+            ingredient.SuitableSkin,
+            ingredient.NotForSkin,
             ingredient.CreatedAt,
             ingredient.UpdatedAt);
+    [HttpPost("import-csv")]
+    [AllowAnonymous] // Temporary for admin/dev usage
+    public async Task<IActionResult> ImportCsv([FromBody] string csvFilePath, CancellationToken cancellationToken)
+    {
+        if (!System.IO.File.Exists(csvFilePath))
+        {
+            return BadRequest(new { message = "File not found" });
+        }
+
+        using var fs = new System.IO.FileStream(csvFilePath, System.IO.FileMode.Open, System.IO.FileAccess.Read, System.IO.FileShare.ReadWrite);
+        using var reader = new System.IO.StreamReader(fs);
+        var content = await reader.ReadToEndAsync();
+        var lines = content.Split(new[] { "\r\n", "\r", "\n" }, StringSplitOptions.None);
+        if (lines.Length == 0 || string.IsNullOrWhiteSpace(lines[0])) return BadRequest(new { message = "Empty CSV" });
+        
+        var headers = lines[0].Split(',');
+        var nameIncIndex = Array.IndexOf(headers, "name_inc");
+        var skinTypeIndex = Array.IndexOf(headers, "skinType");
+        var notForSkinIndex = Array.IndexOf(headers, "NotForSkin");
+
+        if (nameIncIndex == -1 || skinTypeIndex == -1 || notForSkinIndex == -1)
+        {
+            return BadRequest(new { message = "Invalid CSV format" });
+        }
+
+        int updatedCount = 0;
+        foreach (var line in lines.Skip(1))
+        {
+            var parts = System.Text.RegularExpressions.Regex.Split(line, ",(?=(?:[^\"]*\"[^\"]*\")*[^\"]*$)");
+            if (parts.Length <= Math.Max(skinTypeIndex, notForSkinIndex)) continue;
+
+            var nameInc = parts[nameIncIndex].Trim('\"', ' ');
+            var suitableSkin = parts[skinTypeIndex].Trim('\"', ' ');
+            var notForSkin = parts[notForSkinIndex].Trim('\"', ' ');
+
+            if (notForSkin.Equals("None", StringComparison.OrdinalIgnoreCase))
+            {
+                notForSkin = string.Empty;
+            }
+
+            var ingredient = await db.Ingredients.FirstOrDefaultAsync(x => x.NameInc.ToLower() == nameInc.ToLower(), cancellationToken);
+            if (ingredient != null)
+            {
+                ingredient.SuitableSkin = suitableSkin;
+                ingredient.NotForSkin = notForSkin;
+                updatedCount++;
+            }
+        }
+
+        await db.SaveChangesAsync(cancellationToken);
+        return Ok(new { message = $"Successfully updated {updatedCount} ingredients." });
+    }
 }
 
 public sealed record IngredientAnalyzeTextRequest(Guid UserId, string InputText, string? SkinType, IReadOnlyCollection<string>? Allergies);

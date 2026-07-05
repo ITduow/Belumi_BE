@@ -7,4 +7,6 @@ public sealed class Ingredient : BaseEntity
     public string Category { get; set; } = string.Empty;
     public string Description { get; set; } = string.Empty;
     public string Links { get; set; } = string.Empty;
+    public string SuitableSkin { get; set; } = string.Empty;
+    public string NotForSkin { get; set; } = string.Empty;
 }

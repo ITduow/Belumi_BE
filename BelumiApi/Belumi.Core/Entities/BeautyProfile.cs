@@ -24,7 +24,7 @@ public sealed class BeautyProfile : BaseEntity
     public string? AgeGroup { get; set; }
 
     // ── Q4 ───────────────────────────────────────────────────────────────────
-    /// <summary>normal | dry | combination | oily (Q4)</summary>
+    /// <summary>normal | dry | combination | oily | sensitive (Q4)</summary>
     public string? SkinType { get; set; }
 
     // ── Q5 ───────────────────────────────────────────────────────────────────

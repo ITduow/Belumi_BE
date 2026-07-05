@@ -5,5 +5,8 @@ namespace Belumi.Core.Interfaces;
 
 public interface ISkinAnalysisService
 {
-    Task<AnalysisResponse> AnalyzeAsync(byte[] imageBytes, string skinType);
+    Task<AnalysisResponse> AnalyzeAsync(
+        byte[] imageBytes,
+        string skinType,
+        SkinAnalysisContext? context = null);
 }

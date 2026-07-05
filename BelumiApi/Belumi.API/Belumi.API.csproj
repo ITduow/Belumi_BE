@@ -8,6 +8,7 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <PackageReference Include="EPPlus" Version="7.1.2" />
     <PackageReference Include="Microsoft.AspNetCore.OpenApi" Version="8.0.27" />
     <PackageReference Include="Swashbuckle.AspNetCore" Version="6.6.2" />
     <PackageReference Include="Microsoft.EntityFrameworkCore.Design" Version="8.0.11">

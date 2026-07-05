@@ -79,7 +79,13 @@ public static class SkinEndpoints
                     message = "Vui lòng cung cấp ảnh qua field 'image' (file) hoặc 'image_base64' (base64 string)."
                 });
 
-            var result = await service.AnalyzeAsync(imageBytes, normalizedType);
+            if (!await user.CheckDailyLimitAsync(db, "skin_analysis"))
+            {
+                return Results.Json(new { message = "Bạn đã dùng hết lượt phân tích da miễn phí hôm nay. Vui lòng nâng cấp lên gói Paid để sử dụng không giới hạn!" }, statusCode: StatusCodes.Status429TooManyRequests);
+            }
+
+            var context = await BuildAnalysisContextAsync(db, user, normalizedType);
+            var result = await service.AnalyzeAsync(imageBytes, normalizedType, context);
             await SaveSuccessfulAnalysisAsync(db, user, result, normalizedType, logger);
 
             return result.Status switch
@@ -216,6 +222,53 @@ public static class SkinEndpoints
         });
 
         await db.SaveChangesAsync();
+    }
+
+    private static async Task<SkinAnalysisContext> BuildAnalysisContextAsync(
+        BelumiDbContext db,
+        ClaimsPrincipal user,
+        string skinType)
+    {
+        var userId = user.GetUserId();
+        if (userId == Guid.Empty)
+        {
+            return new SkinAnalysisContext { SkinType = skinType };
+        }
+
+        var profile = await db.BeautyProfiles
+            .AsNoTracking()
+            .FirstOrDefaultAsync(x => x.UserId == userId);
+
+        if (profile == null)
+        {
+            return new SkinAnalysisContext { SkinType = skinType };
+        }
+
+        return new SkinAnalysisContext
+        {
+            SkinType = string.IsNullOrWhiteSpace(profile.SkinType) ? skinType : profile.SkinType,
+            SkinSensitivity = profile.SkinSensitivity,
+            SkinGoals = DeserializeList(profile.SkinGoals),
+            AvoidedIngredients = DeserializeList(profile.AvoidedIngredients),
+            BudgetRange = profile.BudgetRange
+        };
+    }
+
+    private static List<string> DeserializeList(string? json)
+    {
+        if (string.IsNullOrWhiteSpace(json))
+        {
+            return [];
+        }
+
+        try
+        {
+            return JsonSerializer.Deserialize<List<string>>(json) ?? [];
+        }
+        catch
+        {
+            return [];
+        }
     }
 
     private static string BuildConcerns(SkinAnalysisResult result)

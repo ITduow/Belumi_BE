@@ -10,7 +10,9 @@ public sealed record ProductDto(
     string? ThumbnailUrl,
     Guid CategoryId,
     string? CategoryName,
-    IReadOnlyCollection<string> Images);
+    IReadOnlyCollection<string> Images,
+    string? Brand,
+    string? ImageUrl);
 
 public sealed record ContactRequestDto(string FullName, string Phone, string? Email, string Message);
 public sealed record SkinAnalysisRequest(
@@ -21,10 +23,10 @@ public sealed record SkinAnalysisRequest(
     string? PlanCode);
 public sealed record SkinAnalysisResult(Guid Id, string ImageUrl, string SkinType, string Concerns, string Recommendations, int Score, DateTime AnalyzedAt);
 public sealed record BeautyProfileRequest(string? SkinType, string? SkinConcerns, string? Allergies);
-public sealed record IngredientDto(Guid Id, string NameInc, string Name, string Category, string Description, string Links, DateTime CreatedAt, DateTime? UpdatedAt);
+public sealed record IngredientDto(Guid Id, string NameInc, string Name, string Category, string Description, string Links, string SuitableSkin, string NotForSkin, DateTime CreatedAt, DateTime? UpdatedAt);
 public sealed record IngredientListResult(IReadOnlyCollection<IngredientDto> Items, int Total, int Page, int PageSize);
-public sealed record IngredientCreateRequest(string NameInc, string Name, string Category, string Description, string Links);
-public sealed record IngredientUpdateRequest(string NameInc, string Name, string Category, string Description, string Links);
+public sealed record IngredientCreateRequest(string NameInc, string Name, string Category, string Description, string Links, string SuitableSkin, string NotForSkin);
+public sealed record IngredientUpdateRequest(string NameInc, string Name, string Category, string Description, string Links, string SuitableSkin, string NotForSkin);
 public sealed record IngredientLookupRequest(string TextOrImageUrl);
 public sealed record IngredientLookupResult(string Summary, IReadOnlyCollection<string> SafeIngredients, IReadOnlyCollection<string> Watchlist, IReadOnlyCollection<string> Recommendations);
 public sealed record IngredientScanRequest(string RawTextOrImageUrl, string? SkinType, IReadOnlyCollection<string>? Allergies);

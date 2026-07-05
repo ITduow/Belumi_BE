@@ -22,23 +22,31 @@ public class SkinAnalysisService : ISkinAnalysisService
     private readonly IMemoryCache _cache;
     private readonly ILogger<SkinAnalysisService> _logger;
     private readonly IOpenAiChatService _openAiChatService;
+    private readonly AdviceRuleEngine _adviceRuleEngine;
 
     public SkinAnalysisService(
         IMemoryCache cache,
         ILogger<SkinAnalysisService> logger,
-        IOpenAiChatService openAiChatService)
+        IOpenAiChatService openAiChatService,
+        AdviceRuleEngine adviceRuleEngine)
     {
         _cache             = cache;
         _logger            = logger;
         _openAiChatService = openAiChatService;
+        _adviceRuleEngine  = adviceRuleEngine;
     }
 
     // ─────────────────────────────────────────────────────────────────────────
     // PUBLIC
     // ─────────────────────────────────────────────────────────────────────────
 
-    public async Task<AnalysisResponse> AnalyzeAsync(byte[] imageBytes, string skinType)
+    public async Task<AnalysisResponse> AnalyzeAsync(
+        byte[] imageBytes,
+        string skinType,
+        SkinAnalysisContext? context = null)
     {
+        context ??= new SkinAnalysisContext { SkinType = skinType };
+
         var validationError = ValidateImage(imageBytes);
         if (validationError != null)
         {
@@ -62,7 +70,8 @@ public class SkinAnalysisService : ISkinAnalysisService
         }
 
         var imageHash = ComputeHash(processedImage);
-        var cacheKey  = $"skin:{skinType}:{imageHash}";
+        var contextHash = ComputeContextHash(context);
+        var cacheKey  = $"skin:{skinType}:{contextHash}:{imageHash}";
 
         if (_cache.TryGetValue(cacheKey, out SkinAnalysisResult? cached) && cached != null)
         {
@@ -113,6 +122,10 @@ public class SkinAnalysisService : ISkinAnalysisService
         result.SkinCondition = GenerateSkinCondition(result);
         result.Description   = GenerateDescription(result, skinType);
 
+        var advice = _adviceRuleEngine.Evaluate(result, context);
+        result.Advice    = advice.Advice;
+        result.Routine   = advice.Routine;
+        result.Warnings  = advice.Warnings;
 
         _cache.Set(cacheKey, result, TimeSpan.FromHours(24));
 
@@ -177,14 +190,12 @@ public class SkinAnalysisService : ISkinAnalysisService
         {
             ("severe", _, _) =>
                 "Tình trạng khá nghiêm trọng, nên tham khảo bác sĩ da liễu thay vì tự điều trị.",
-
             ("moderate", "sensitive", _) =>
                 "Da nhạy cảm với mụn trung bình dễ để lại sẹo — cần ưu tiên làm dịu trước khi dùng active.",
             ("moderate", _, true) =>
                 "Mụn trung bình kèm thâm cần được xử lý sớm để tránh thâm ăn sâu hơn.",
             ("moderate", _, _) =>
                 "Tình trạng cần được chăm sóc tích cực hơn, nên bắt đầu routine ổn định sớm.",
-
             ("mild", _, true) =>
                 "Tình trạng chưa nghiêm trọng nhưng cần xử lý sớm để tránh thâm kéo dài.",
             ("mild", "oily", _) =>
@@ -193,7 +204,6 @@ public class SkinAnalysisService : ISkinAnalysisService
                 "Mụn nhẹ trên da khô thường do barrier yếu — ưu tiên dưỡng ẩm trước khi thêm treatment.",
             ("mild", _, _) =>
                 "Tình trạng hiện tại nhẹ, có thể cải thiện rõ với routine đơn giản và kiên trì.",
-
             ("none", "sensitive", _) when result.VisibleRednessLevel is "medium" or "high" =>
                 "Đỏ da trên da nhạy cảm cần theo dõi — ưu tiên sản phẩm dịu nhẹ và phục hồi barrier.",
             ("none", "dry", _) when result.PigmentationLevel is "medium" or "high" =>
@@ -202,7 +212,6 @@ public class SkinAnalysisService : ISkinAnalysisService
                 "Lỗ chân lông to trên da dầu thường do bã nhờn tích tụ — BHA định kỳ sẽ giúp cải thiện.",
             ("none", _, _) when concerns.Any() =>
                 "Các dấu hiệu hiện tại chưa nghiêm trọng, duy trì routine đều đặn sẽ cải thiện tốt.",
-
             _ => "Duy trì routine chăm sóc da sáng và tối là đủ để giữ da ở trạng thái tốt."
         };
 
@@ -241,7 +250,6 @@ public class SkinAnalysisService : ISkinAnalysisService
 
         return $"Các dạng mụn nhìn thấy gồm {acneTypeText}.";
     }
-
 
     // ─────────────────────────────────────────────────────────────────────────
     // IMAGE UTILS
@@ -292,6 +300,21 @@ public class SkinAnalysisService : ISkinAnalysisService
     private static string ComputeHash(byte[] imageBytes)
     {
         var hash = SHA256.HashData(imageBytes);
+        return Convert.ToHexString(hash).ToLower();
+    }
+
+    private static string ComputeContextHash(SkinAnalysisContext context)
+    {
+        var payload = JsonSerializer.Serialize(new
+        {
+            skinType = context.SkinType,
+            skinSensitivity = context.SkinSensitivity,
+            skinGoals = context.SkinGoals.OrderBy(x => x, StringComparer.OrdinalIgnoreCase),
+            avoidedIngredients = context.AvoidedIngredients.OrderBy(x => x, StringComparer.OrdinalIgnoreCase),
+            budgetRange = context.BudgetRange
+        });
+
+        var hash = SHA256.HashData(System.Text.Encoding.UTF8.GetBytes(payload));
         return Convert.ToHexString(hash).ToLower();
     }
 

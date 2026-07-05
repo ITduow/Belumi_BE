@@ -32,6 +32,11 @@ public sealed class ChatbotController(
         var userId = User.GetUserId();
         requestContext.UserId = userId;
 
+        if (userId != Guid.Empty && !await User.CheckDailyLimitAsync(db, "chatbot"))
+        {
+            return StatusCode(429, new { message = "Bạn đã dùng hết lượt trò chuyện miễn phí hôm nay. Vui lòng nâng cấp lên gói Paid để sử dụng không giới hạn!" });
+        }
+
         var answer = await ComposeAnswerAsync(message, request.SkinType, cancellationToken);
 
         if (userId != Guid.Empty)

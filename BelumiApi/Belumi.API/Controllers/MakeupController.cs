@@ -25,6 +25,11 @@ public sealed class MakeupController(IAiBeautyService aiBeautyService, BelumiDbC
     [Authorize]
     public async Task<ActionResult<MakeupConsultationResult>> ConsultV2(MakeupConsultRequest request, CancellationToken cancellationToken)
     {
+        if (!await User.CheckDailyLimitAsync(db, "makeup"))
+        {
+            return StatusCode(429, new { message = "Bạn đã dùng hết lượt tư vấn trang điểm miễn phí hôm nay. Vui lòng nâng cấp lên gói Paid để sử dụng không giới hạn!" });
+        }
+
         var userId = request.UserId == Guid.Empty ? User.GetUserId() : request.UserId;
         var result = aiBeautyService.ConsultMakeup(new MakeupConsultationRequest(request.SkinTone, request.Occasion, request.StylePreference));
         db.MakeupConsultations.Add(new MakeupConsultation
@@ -68,8 +73,29 @@ public sealed class MakeupController(IAiBeautyService aiBeautyService, BelumiDbC
     }
 
     [HttpPost("try-on")]
-    public ActionResult<MakeupTryOnResult> TryOn(MakeupTryOnRequest request) =>
-        Ok(aiBeautyService.TryOnMakeup(request));
+    [Authorize]
+    public async Task<ActionResult<MakeupTryOnResult>> TryOn(MakeupTryOnRequest request, CancellationToken cancellationToken)
+    {
+        if (!await User.CheckDailyLimitAsync(db, "makeup_tryon"))
+        {
+            return StatusCode(429, new { message = "Bạn đã dùng hết lượt thử trang điểm ảo miễn phí hôm nay. Vui lòng nâng cấp lên gói Paid để sử dụng không giới hạn!" });
+        }
+
+        var userId = User.GetUserId();
+        var result = aiBeautyService.TryOnMakeup(request);
+
+        db.AiUsageLogs.Add(new AiUsageLog
+        {
+            UserId = userId,
+            FeatureName = "makeup_tryon",
+            TokenUsed = 50,
+            RequestData = JsonSerializer.Serialize(request),
+            ResponseData = JsonSerializer.Serialize(result)
+        });
+        await db.SaveChangesAsync(cancellationToken);
+
+        return Ok(result);
+    }
 }
 
 public sealed record MakeupConsultRequest(Guid UserId, string SkinTone, string Occasion, string StylePreference, string? Note);

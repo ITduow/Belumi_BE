@@ -19,7 +19,7 @@ public sealed record SubmitQuizRequest
     [JsonPropertyName("age_group")]
     public string? AgeGroup { get; init; }
 
-    /// <summary>normal | dry | combination | oily</summary>
+    /// <summary>normal | dry | combination | oily | sensitive</summary>
     [JsonPropertyName("skin_type")]
     public string? SkinType { get; init; }
 
