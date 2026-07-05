@@ -630,6 +630,13 @@ public sealed class AdminController(BelumiDbContext db) : ControllerBase
             ingredient.Category = value("category");
             ingredient.Description = value("description");
             ingredient.Links = value("links");
+            ingredient.SuitableSkin = value("skintype");
+            var notForSkin = value("notforskin");
+            if (notForSkin.Equals("None", StringComparison.OrdinalIgnoreCase))
+            {
+                notForSkin = string.Empty;
+            }
+            ingredient.NotForSkin = notForSkin;
         }
 
         await db.SaveChangesAsync(cancellationToken);
