@@ -79,6 +79,11 @@ public static class SkinEndpoints
                     message = "Vui lòng cung cấp ảnh qua field 'image' (file) hoặc 'image_base64' (base64 string)."
                 });
 
+            if (!await user.CheckDailyLimitAsync(db, "skin_analysis"))
+            {
+                return Results.Json(new { message = "Bạn đã dùng hết lượt phân tích da miễn phí hôm nay. Vui lòng nâng cấp lên gói Paid để sử dụng không giới hạn!" }, statusCode: StatusCodes.Status429TooManyRequests);
+            }
+
             var context = await BuildAnalysisContextAsync(db, user, normalizedType);
             var result = await service.AnalyzeAsync(imageBytes, normalizedType, context);
             await SaveSuccessfulAnalysisAsync(db, user, result, normalizedType, logger);

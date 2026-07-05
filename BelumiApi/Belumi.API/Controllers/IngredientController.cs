@@ -144,6 +144,11 @@ public sealed class IngredientController(IAiBeautyService aiBeautyService, Belum
     [Authorize]
     public async Task<ActionResult<IngredientScanResult>> AnalyzeText(IngredientAnalyzeTextRequest request, CancellationToken cancellationToken)
     {
+        if (!await User.CheckDailyLimitAsync(db, "ingredient"))
+        {
+            return StatusCode(429, new { message = "Bạn đã dùng hết lượt tra cứu miễn phí hôm nay. Vui lòng nâng cấp lên gói Paid để sử dụng không giới hạn!" });
+        }
+
         var result = aiBeautyService.AnalyzeIngredientLabel(new IngredientScanRequest(request.InputText, request.SkinType, request.Allergies));
         await SaveLookupAsync(request.UserId == Guid.Empty ? User.GetUserId() : request.UserId, request.InputText, null, result, cancellationToken);
         return Ok(result);
@@ -153,6 +158,11 @@ public sealed class IngredientController(IAiBeautyService aiBeautyService, Belum
     [Authorize]
     public async Task<ActionResult<IngredientScanResult>> AnalyzeImage(IngredientAnalyzeImageRequest request, CancellationToken cancellationToken)
     {
+        if (!await User.CheckDailyLimitAsync(db, "ingredient"))
+        {
+            return StatusCode(429, new { message = "Bạn đã dùng hết lượt tra cứu miễn phí hôm nay. Vui lòng nâng cấp lên gói Paid để sử dụng không giới hạn!" });
+        }
+
         var result = aiBeautyService.AnalyzeIngredientLabel(new IngredientScanRequest(request.ImageUrl, request.SkinType, request.Allergies));
         await SaveLookupAsync(request.UserId == Guid.Empty ? User.GetUserId() : request.UserId, request.OcrText ?? request.ImageUrl, request.ImageUrl, result, cancellationToken);
         return Ok(result);
