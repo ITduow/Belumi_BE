@@ -137,8 +137,8 @@ public sealed class IngredientController(IAiBeautyService aiBeautyService, Belum
         Ok(aiBeautyService.LookupIngredients(request));
 
     [HttpPost("scan")]
-    public ActionResult<IngredientScanResult> Scan(IngredientScanRequest request) =>
-        Ok(aiBeautyService.AnalyzeIngredientLabel(request));
+    public async Task<ActionResult<IngredientScanResult>> Scan(IngredientScanRequest request) =>
+        Ok(await aiBeautyService.AnalyzeIngredientLabel(request));
 
     [HttpPost("analyze-text")]
     [Authorize]
@@ -149,7 +149,7 @@ public sealed class IngredientController(IAiBeautyService aiBeautyService, Belum
             return StatusCode(429, new { message = "Bạn đã dùng hết lượt tra cứu miễn phí hôm nay. Vui lòng nâng cấp lên gói Paid để sử dụng không giới hạn!" });
         }
 
-        var result = aiBeautyService.AnalyzeIngredientLabel(new IngredientScanRequest(request.InputText, request.SkinType, request.Allergies));
+        var result = await aiBeautyService.AnalyzeIngredientLabel(new IngredientScanRequest(request.InputText, request.SkinType, request.Allergies));
         await SaveLookupAsync(request.UserId == Guid.Empty ? User.GetUserId() : request.UserId, request.InputText, null, result, cancellationToken);
         return Ok(result);
     }
@@ -163,7 +163,7 @@ public sealed class IngredientController(IAiBeautyService aiBeautyService, Belum
             return StatusCode(429, new { message = "Bạn đã dùng hết lượt tra cứu miễn phí hôm nay. Vui lòng nâng cấp lên gói Paid để sử dụng không giới hạn!" });
         }
 
-        var result = aiBeautyService.AnalyzeIngredientLabel(new IngredientScanRequest(request.ImageUrl, request.SkinType, request.Allergies));
+        var result = await aiBeautyService.AnalyzeIngredientLabel(new IngredientScanRequest(request.ImageUrl, request.SkinType, request.Allergies));
         await SaveLookupAsync(request.UserId == Guid.Empty ? User.GetUserId() : request.UserId, request.OcrText ?? request.ImageUrl, request.ImageUrl, result, cancellationToken);
         return Ok(result);
     }
