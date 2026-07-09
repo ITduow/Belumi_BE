@@ -268,7 +268,7 @@ public sealed class AdviceRuleEngine
     private static string DetermineCategory(string content)
     {
         var lower = content.ToLowerInvariant();
-        if (lower.Contains("sữa rửa mặt") || lower.Contains("làm sạch") || lower.Contains("gel rửa mặt") || lower.Contains("cleanser")) return "Làm sạch";
+        if (lower.Contains("sữa rửa mặt") || lower.Contains("làm sạch") || lower.Contains("gel rửa mặt") || lower.Contains("cleanser") || lower.Contains("tẩy trang") || lower.Contains("micellar")) return "Làm sạch";
         if (lower.Contains("toner") || lower.Contains("nước hoa hồng")) return "Toner";
         if (lower.Contains("serum") || lower.Contains("bha") || lower.Contains("aha") || lower.Contains("niacinamide") || lower.Contains("retin") || lower.Contains("chấm mụn")) return "Treatment";
         if (lower.Contains("dưỡng ẩm") || lower.Contains("kem dưỡng") || lower.Contains("cream") || lower.Contains("lotion")) return "Dưỡng ẩm";
