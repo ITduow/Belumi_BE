@@ -85,6 +85,22 @@ public sealed class ProductController(ICatalogService catalogService, BelumiDbCo
         return Ok(new { message = $"Imported {productsToAdd.Count} products successfully." });
     }
 
+    [HttpDelete("temp-delete-mock-products")]
+    [AllowAnonymous]
+    public async Task<IActionResult> TempDeleteMockProducts(CancellationToken cancellationToken)
+    {
+        var mockProducts = await dbContext.Products
+            .Where(p => p.Name == "Belumi Glow Serum" || p.Name == "Belumi Barrier Cream")
+            .ToListAsync(cancellationToken);
+        if (mockProducts.Any())
+        {
+            dbContext.Products.RemoveRange(mockProducts);
+            await dbContext.SaveChangesAsync(cancellationToken);
+            return Ok(new { message = $"Deleted {mockProducts.Count} mock products successfully." });
+        }
+        return Ok(new { message = "No mock products found." });
+    }
+
     [HttpGet("recommend-by-skin")]
     [AllowAnonymous]
     public async Task<IActionResult> RecommendProducts([FromQuery] string skinType, CancellationToken cancellationToken)
