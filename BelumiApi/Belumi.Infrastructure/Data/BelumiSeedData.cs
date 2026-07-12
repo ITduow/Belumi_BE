@@ -37,30 +37,7 @@ public static class BelumiSeedData
             }
         };
 
-        var serum = new Product
-        {
-            Name = "Belumi Glow Serum",
-            Description = "Lightweight vitamin serum for a bright, hydrated finish.",
-            Ingredients = "Niacinamide, Vitamin C derivative, Hyaluronic Acid",
-            Benefits = "Brightening, hydration, smoother skin texture",
-            Price = 420000,
-            ThumbnailUrl = "https://images.unsplash.com/photo-1620916566398-39f1143ab7be",
-            Category = skincare
-        };
-        serum.Images.Add(new ProductImage { ImageUrl = serum.ThumbnailUrl!, SortOrder = 1 });
-
-        var cream = new Product
-        {
-            Name = "Belumi Barrier Cream",
-            Description = "Comforting moisturizer for daily barrier support.",
-            Ingredients = "Ceramide NP, Panthenol, Squalane",
-            Benefits = "Barrier repair, calming, moisture lock",
-            Price = 360000,
-            ThumbnailUrl = "https://images.unsplash.com/photo-1617897903246-719242758050",
-            Category = skincare
-        };
-
-        db.AddRange(skincare, makeup, spa, customer, serum, cream);
+        db.AddRange(skincare, makeup, spa, customer);
         db.Services.AddRange(
             new Service
             {
