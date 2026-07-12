@@ -221,15 +221,14 @@ public sealed class IngredientController(IAiBeautyService aiBeautyService, Belum
             ingredient.UpdatedAt);
     [HttpPost("import-csv")]
     [AllowAnonymous] // Temporary for admin/dev usage
-    public async Task<IActionResult> ImportCsv([FromBody] string csvFilePath, CancellationToken cancellationToken)
+    public async Task<IActionResult> ImportCsv(IFormFile file, CancellationToken cancellationToken)
     {
-        if (!System.IO.File.Exists(csvFilePath))
+        if (file == null || file.Length == 0)
         {
-            return BadRequest(new { message = "File not found" });
+            return BadRequest(new { message = "Please upload a valid CSV file." });
         }
 
-        using var fs = new System.IO.FileStream(csvFilePath, System.IO.FileMode.Open, System.IO.FileAccess.Read, System.IO.FileShare.ReadWrite);
-        using var reader = new System.IO.StreamReader(fs);
+        using var reader = new System.IO.StreamReader(file.OpenReadStream());
         var content = await reader.ReadToEndAsync();
         var lines = content.Split(new[] { "\r\n", "\r", "\n" }, StringSplitOptions.None);
         if (lines.Length == 0 || string.IsNullOrWhiteSpace(lines[0])) return BadRequest(new { message = "Empty CSV" });

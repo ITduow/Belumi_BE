@@ -3,6 +3,7 @@ using Belumi.Core.DTOs;
 using Belumi.Core.Entities;
 using Belumi.Infrastructure.Data;
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using OfficeOpenXml;
@@ -29,13 +30,13 @@ public sealed class ProductController(ICatalogService catalogService, BelumiDbCo
 
     [HttpPost("import-excel")]
     [AllowAnonymous]
-    public async Task<IActionResult> ImportExcel(CancellationToken cancellationToken)
+    public async Task<IActionResult> ImportExcel(IFormFile file, CancellationToken cancellationToken)
     {
-        string filePath = @"C:\Users\user\Downloads\data_exe.xlsx";
-        if (!System.IO.File.Exists(filePath)) return BadRequest(new { message = "File not found" });
+        if (file == null || file.Length == 0) return BadRequest(new { message = "Please upload a valid Excel file." });
 
         ExcelPackage.LicenseContext = LicenseContext.NonCommercial;
-        using var package = new ExcelPackage(new System.IO.FileInfo(filePath));
+        using var stream = file.OpenReadStream();
+        using var package = new ExcelPackage(stream);
         var worksheet = package.Workbook.Worksheets[0];
         if (worksheet == null) return BadRequest(new { message = "No worksheet found" });
 
