@@ -4,6 +4,7 @@ public sealed class Product : BaseEntity
 {
     public string Name { get; set; } = string.Empty;
     public string Brand { get; set; } = "Belumi";
+    public string? SourceUrl { get; set; }
     public string Description { get; set; } = string.Empty;
     public string Ingredients { get; set; } = string.Empty;
     public string Benefits { get; set; } = string.Empty;

@@ -72,7 +72,8 @@ public sealed class ProductController(ICatalogService catalogService, BelumiDbCo
                 Ingredients = ingredients ?? string.Empty,
                 ImageUrl = imageUrl,
                 ThumbnailUrl = imageUrl,
-                Description = url ?? string.Empty,
+                SourceUrl = url,
+                Description = string.Empty,
                 Price = 0,
                 IsActive = true
             };
