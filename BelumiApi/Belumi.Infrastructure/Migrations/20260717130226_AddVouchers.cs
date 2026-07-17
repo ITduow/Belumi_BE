@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using Microsoft.EntityFrameworkCore.Migrations;
 
 #nullable disable
@@ -11,11 +11,7 @@ namespace Belumi.Infrastructure.Migrations
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
         {
-            migrationBuilder.AddColumn<string>(
-                name: "SourceUrl",
-                table: "Products",
-                type: "text",
-                nullable: true);
+            migrationBuilder.Sql("ALTER TABLE \"Products\" ADD COLUMN IF NOT EXISTS \"SourceUrl\" text NULL;");
 
             migrationBuilder.AddColumn<Guid>(
                 name: "VoucherId",
@@ -127,9 +123,7 @@ namespace Belumi.Infrastructure.Migrations
                 name: "IX_Payments_VoucherId",
                 table: "Payments");
 
-            migrationBuilder.DropColumn(
-                name: "SourceUrl",
-                table: "Products");
+            migrationBuilder.Sql("ALTER TABLE \"Products\" DROP COLUMN IF EXISTS \"SourceUrl\";");
 
             migrationBuilder.DropColumn(
                 name: "VoucherId",
