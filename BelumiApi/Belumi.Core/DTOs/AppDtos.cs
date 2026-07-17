@@ -1,3 +1,5 @@
+using Belumi.Core.Entities;
+
 namespace Belumi.Core.DTOs;
 
 public sealed record ProductDto(
@@ -12,7 +14,8 @@ public sealed record ProductDto(
     string? CategoryName,
     IReadOnlyCollection<string> Images,
     string? Brand,
-    string? ImageUrl);
+    string? ImageUrl,
+    string? SourceUrl);
 
 public sealed record ContactRequestDto(string FullName, string Phone, string? Email, string Message);
 public sealed record SkinAnalysisRequest(
@@ -36,7 +39,11 @@ public sealed record MakeupConsultationRequest(string SkinTone, string Occasion,
 public sealed record MakeupConsultationResult(string LookName, string Base, string Eyes, string Lips, IReadOnlyCollection<string> ProductSuggestions);
 public sealed record MakeupTryOnRequest(string ImageUrl, string ProductName, string ProductType, string Shade, string HexColor);
 public sealed record MakeupTryOnResult(string ProductName, string ProductType, string Shade, string HexColor, int MatchScore, string PreviewNote, IReadOnlyCollection<string> ApplicationTips);
-public sealed record PayOsLinkRequest(Guid PlanId, string CancelUrl, string ReturnUrl);
+public sealed record PayOsLinkRequest(Guid PlanId, string CancelUrl, string ReturnUrl, string? VoucherCode = null);
+public sealed record VoucherCreateRequest(string Code, DateTime ExpiryDate, VoucherType Type, decimal DiscountValue, DiscountType DiscountType, int? UsageLimit);
+public sealed record VoucherDto(Guid Id, string Code, DateTime ExpiryDate, VoucherType Type, decimal DiscountValue, DiscountType DiscountType, int? UsageLimit, int UsageCount, bool IsActive, DateTime CreatedAt);
+public sealed record VoucherValidationRequest(string Code, Guid PlanId);
+public sealed record VoucherValidationResponse(bool IsValid, string Message, decimal DiscountAmount, decimal FinalAmount);
 public sealed record PayOsLinkResponse(string CheckoutUrl, long OrderCode, decimal Amount);
 public sealed record PayOsWebhookRequest(string code, string desc, bool success, PayOsWebhookData data, string signature);
 public sealed record PayOsWebhookData(

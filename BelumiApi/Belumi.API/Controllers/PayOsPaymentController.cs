@@ -35,6 +35,7 @@ public sealed class PayOsPaymentController(IPaymentService paymentService) : Con
                 userId,
                 request.CancelUrl,
                 request.ReturnUrl,
+                request.VoucherCode,
                 cancellationToken);
 
             return Ok(response);
@@ -43,6 +44,31 @@ public sealed class PayOsPaymentController(IPaymentService paymentService) : Con
         {
             return BadRequest(new { message = ex.Message });
         }
+    }
+
+    [HttpPost("validate-voucher")]
+    [Authorize]
+    public async Task<IActionResult> ValidateVoucher(
+        [FromBody] VoucherValidationRequest request,
+        CancellationToken cancellationToken)
+    {
+        var userId = User.GetUserId();
+        if (userId == Guid.Empty)
+        {
+            return Unauthorized();
+        }
+
+        var result = await paymentService.ValidateVoucherAsync(
+            request.Code,
+            request.PlanId,
+            userId,
+            cancellationToken);
+
+        return Ok(new VoucherValidationResponse(
+            result.IsValid,
+            result.Message,
+            result.DiscountAmount,
+            result.FinalAmount));
     }
 
     [HttpGet("status/{orderCode:long}")]

@@ -49,5 +49,6 @@ public sealed class CatalogService(BelumiDbContext db) : ICatalogService
             product.Category?.Name,
             product.Images.OrderBy(x => x.SortOrder).Select(x => x.ImageUrl).ToArray(),
             product.Brand,
-            product.ImageUrl);
+            product.ImageUrl,
+            product.SourceUrl);
 }

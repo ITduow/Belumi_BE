@@ -11,4 +11,7 @@ public sealed class Payment : BaseEntity
     public string PaymentMethod { get; set; } = "Mock";
     public string PaymentStatus { get; set; } = "Pending";
     public string TransactionCode { get; set; } = string.Empty;
+
+    public Guid? VoucherId { get; set; }
+    public Voucher? Voucher { get; set; }
 }
