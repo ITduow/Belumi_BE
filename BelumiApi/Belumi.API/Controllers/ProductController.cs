@@ -111,6 +111,7 @@ public sealed class ProductController(ICatalogService catalogService, BelumiDbCo
 
         var products = await dbContext.Products
             .AsNoTracking()
+            .Include(p => p.Category)
             .Where(p => p.IsActive)
             .ToListAsync(cancellationToken);
 
@@ -138,7 +139,7 @@ public sealed class ProductController(ICatalogService catalogService, BelumiDbCo
                 p.Price, 
                 p.ThumbnailUrl, 
                 p.CategoryId, 
-                null, 
+                p.Category?.Name, 
                 [],
                 p.Brand,
                 p.ImageUrl);
@@ -155,8 +156,8 @@ public sealed class ProductController(ICatalogService catalogService, BelumiDbCo
 
         return Ok(new
         {
-            SuitableProducts = suitableProducts.Take(20),
-            UnsuitableProducts = unsuitableProducts.Take(20)
+            SuitableProducts = suitableProducts,
+            UnsuitableProducts = unsuitableProducts
         });
     }
 }
