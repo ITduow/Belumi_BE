@@ -12,7 +12,8 @@ public sealed record ProductDto(
     string? CategoryName,
     IReadOnlyCollection<string> Images,
     string? Brand,
-    string? ImageUrl);
+    string? ImageUrl,
+    string? SourceUrl);
 
 public sealed record ContactRequestDto(string FullName, string Phone, string? Email, string Message);
 public sealed record SkinAnalysisRequest(

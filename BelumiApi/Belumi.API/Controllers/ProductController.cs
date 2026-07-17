@@ -142,7 +142,8 @@ public sealed class ProductController(ICatalogService catalogService, BelumiDbCo
                 p.Category?.Name, 
                 [],
                 p.Brand,
-                p.ImageUrl);
+                p.ImageUrl,
+                p.SourceUrl);
 
             if (isBad)
             {
