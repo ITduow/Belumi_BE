@@ -719,6 +719,70 @@ public sealed class AdminController(BelumiDbContext db) : ControllerBase
 
         return rows;
     }
+
+    [HttpGet("vouchers")]
+    public async Task<IActionResult> GetVouchers(CancellationToken cancellationToken) =>
+        Ok(await db.Vouchers.AsNoTracking()
+            .OrderByDescending(x => x.CreatedAt)
+            .Select(x => new VoucherDto(
+                x.Id, 
+                x.Code, 
+                x.ExpiryDate, 
+                x.Type, 
+                x.DiscountValue, 
+                x.DiscountType, 
+                x.UsageLimit, 
+                x.Usages.Count, 
+                x.IsActive, 
+                x.CreatedAt))
+            .ToListAsync(cancellationToken));
+
+    [HttpPost("vouchers")]
+    public async Task<IActionResult> CreateVoucher([FromBody] VoucherCreateRequest request, CancellationToken cancellationToken)
+    {
+        var codeUpper = request.Code.Trim().ToUpperInvariant();
+        if (await db.Vouchers.AnyAsync(x => x.Code == codeUpper, cancellationToken))
+        {
+            return BadRequest(new { message = "Mã voucher này đã tồn tại." });
+        }
+
+        var voucher = new Voucher
+        {
+            Code = codeUpper,
+            ExpiryDate = request.ExpiryDate.ToUniversalTime(),
+            Type = request.Type,
+            DiscountValue = request.DiscountValue,
+            DiscountType = request.DiscountType,
+            UsageLimit = request.UsageLimit,
+            IsActive = true
+        };
+
+        db.Vouchers.Add(voucher);
+        await db.SaveChangesAsync(cancellationToken);
+        
+        return Created($"/api/admin/vouchers/{voucher.Id}", new VoucherDto(
+            voucher.Id, 
+            voucher.Code, 
+            voucher.ExpiryDate, 
+            voucher.Type, 
+            voucher.DiscountValue, 
+            voucher.DiscountType, 
+            voucher.UsageLimit, 
+            0, 
+            voucher.IsActive, 
+            voucher.CreatedAt));
+    }
+
+    [HttpPost("vouchers/{id:guid}/deactivate")]
+    public async Task<IActionResult> DeactivateVoucher(Guid id, CancellationToken cancellationToken)
+    {
+        var voucher = await db.Vouchers.FindAsync([id], cancellationToken);
+        if (voucher == null) return NotFound();
+
+        voucher.IsActive = false;
+        await db.SaveChangesAsync(cancellationToken);
+        return Ok(new { message = "Voucher đã được vô hiệu hóa thành công." });
+    }
 }
 
 public sealed record UserStatusRequest(bool IsActive);

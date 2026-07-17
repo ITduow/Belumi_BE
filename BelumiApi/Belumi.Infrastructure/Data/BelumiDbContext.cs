@@ -28,6 +28,8 @@ public sealed class BelumiDbContext(DbContextOptions<BelumiDbContext> options) :
     public DbSet<UserSubscription> UserSubscriptions => Set<UserSubscription>();
     public DbSet<AiUsageLog> AiUsageLogs => Set<AiUsageLog>();
     public DbSet<Payment> Payments => Set<Payment>();
+    public DbSet<Voucher> Vouchers => Set<Voucher>();
+    public DbSet<VoucherUsage> VoucherUsages => Set<VoucherUsage>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -35,6 +37,14 @@ public sealed class BelumiDbContext(DbContextOptions<BelumiDbContext> options) :
         modelBuilder.Entity<Product>().Property(product => product.Price).HasPrecision(18, 2);
         modelBuilder.Entity<SubscriptionPlan>().Property(plan => plan.Price).HasPrecision(18, 2);
         modelBuilder.Entity<Payment>().Property(payment => payment.Amount).HasPrecision(18, 2);
+        modelBuilder.Entity<Voucher>().Property(v => v.DiscountValue).HasPrecision(18, 2);
+        modelBuilder.Entity<Voucher>().HasIndex(v => v.Code).IsUnique();
+
+        modelBuilder.Entity<VoucherUsage>()
+            .HasOne(u => u.Voucher)
+            .WithMany(v => v.Usages)
+            .HasForeignKey(u => u.VoucherId)
+            .OnDelete(DeleteBehavior.Cascade);
         modelBuilder.Entity<Service>().Property(service => service.Price).HasPrecision(18, 2);
         modelBuilder.Entity<User>().Property(user => user.Role).HasConversion<string>();
         modelBuilder.Entity<ContactRequest>().Property(contact => contact.Status).HasConversion<string>();

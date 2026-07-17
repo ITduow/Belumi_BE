@@ -11,6 +11,7 @@ public static class BelumiSeedData
         await EnsureSubscriptionPlansAsync(db);
         await EnsureAdminAsync(db);
         await EnsureNewsCategoriesAsync(db);
+        await EnsureVouchersAsync(db);
 
         if (await db.Categories.AnyAsync())
         {
@@ -221,5 +222,35 @@ public static class BelumiSeedData
                 db.NewsCategories.Add(category);
             }
         }
+    }
+
+    private static async Task EnsureVouchersAsync(BelumiDbContext db)
+    {
+        if (await db.Vouchers.AnyAsync())
+        {
+            return;
+        }
+
+        db.Vouchers.AddRange(
+            new Voucher
+            {
+                Code = "FREE10",
+                ExpiryDate = DateTime.UtcNow.AddYears(1),
+                Type = VoucherType.MultiUsePerUser,
+                DiscountValue = 10000,
+                DiscountType = DiscountType.FixedAmount,
+                IsActive = true
+            },
+            new Voucher
+            {
+                Code = "ONETIME",
+                ExpiryDate = DateTime.UtcNow.AddYears(1),
+                Type = VoucherType.SingleUse,
+                DiscountValue = 50000,
+                DiscountType = DiscountType.FixedAmount,
+                IsActive = true
+            }
+        );
+        await db.SaveChangesAsync();
     }
 }

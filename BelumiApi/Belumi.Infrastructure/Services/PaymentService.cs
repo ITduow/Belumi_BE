@@ -64,6 +64,7 @@ public sealed class PaymentService : IPaymentService
         Guid userId,
         string cancelUrl,
         string returnUrl,
+        string? voucherCode,
         CancellationToken cancellationToken)
     {
         var plan = await _db.SubscriptionPlans.FindAsync([planId], cancellationToken);
@@ -78,6 +79,25 @@ public sealed class PaymentService : IPaymentService
             throw new ArgumentException("Người dùng không tồn tại.");
         }
 
+        decimal amount = plan.Price;
+        Guid? voucherId = null;
+
+        if (!string.IsNullOrWhiteSpace(voucherCode))
+        {
+            var (isValid, message, discountAmount, finalAmount) = await ValidateVoucherAsync(voucherCode, planId, userId, cancellationToken);
+            if (!isValid)
+            {
+                throw new ArgumentException(message);
+            }
+            amount = finalAmount;
+
+            var voucher = await _db.Vouchers.FirstOrDefaultAsync(v => v.Code == voucherCode.Trim().ToUpperInvariant(), cancellationToken);
+            if (voucher != null)
+            {
+                voucherId = voucher.Id;
+            }
+        }
+
         // Sinh mã đơn hàng duy nhất long (dưới giới hạn 9007199254740991 của Javascript)
         // Dùng timestamp giây nhân 10.000 + random 4 chữ số
         long orderCode = DateTimeOffset.UtcNow.ToUnixTimeSeconds() * 10000 + Random.Shared.Next(1000, 10000);
@@ -86,11 +106,12 @@ public sealed class PaymentService : IPaymentService
         {
             UserId = user.Id,
             PlanId = plan.Id,
-            Amount = plan.Price,
+            Amount = amount,
             Currency = "VND",
             PaymentMethod = "PayOS",
             PaymentStatus = "Pending",
-            TransactionCode = orderCode.ToString()
+            TransactionCode = orderCode.ToString(),
+            VoucherId = voucherId
         };
 
         _db.Payments.Add(payment);
@@ -109,13 +130,13 @@ public sealed class PaymentService : IPaymentService
         {
             Name = plan.Name == "Monthly" ? "Gói Mỗi Tháng" : plan.Name == "Yearly" ? "Gói Mỗi Năm" : plan.Name,
             Quantity = 1,
-            Price = (int)plan.Price
+            Price = (int)amount
         };
 
         var request = new CreatePaymentLinkRequest
         {
             OrderCode = orderCode,
-            Amount = (int)plan.Price,
+            Amount = (int)amount,
             Description = description,
             Items = new List<PaymentLinkItem> { item },
             CancelUrl = cancelUrl,
@@ -124,7 +145,86 @@ public sealed class PaymentService : IPaymentService
 
         var result = await _payOSClient.PaymentRequests.CreateAsync(request);
 
-        return new PayOsLinkResponse(result.CheckoutUrl, orderCode, plan.Price);
+        return new PayOsLinkResponse(result.CheckoutUrl, orderCode, amount);
+    }
+
+    public async Task<(bool IsValid, string Message, decimal DiscountAmount, decimal FinalAmount)> ValidateVoucherAsync(
+        string code,
+        Guid planId,
+        Guid userId,
+        CancellationToken cancellationToken)
+    {
+        if (string.IsNullOrWhiteSpace(code))
+        {
+            return (false, "Mã voucher không được để trống.", 0, 0);
+        }
+
+        var codeUpper = code.Trim().ToUpperInvariant();
+        var voucher = await _db.Vouchers
+            .FirstOrDefaultAsync(v => v.Code == codeUpper, cancellationToken);
+
+        if (voucher == null)
+        {
+            return (false, "Mã voucher không tồn tại trên hệ thống.", 0, 0);
+        }
+
+        if (!voucher.IsActive)
+        {
+            return (false, "Voucher này đã bị vô hiệu hóa.", 0, 0);
+        }
+
+        if (voucher.ExpiryDate < DateTime.UtcNow)
+        {
+            return (false, "Voucher đã hết hạn sử dụng.", 0, 0);
+        }
+
+        // Check single use globally
+        if (voucher.Type == VoucherType.SingleUse)
+        {
+            var isUsedGlobally = await _db.VoucherUsages.AnyAsync(u => u.VoucherId == voucher.Id, cancellationToken);
+            if (isUsedGlobally)
+            {
+                return (false, "Voucher sử dụng một lần này đã được dùng.", 0, 0);
+            }
+        }
+
+        // Check quantity usage limit
+        var totalUsageCount = await _db.VoucherUsages.CountAsync(u => u.VoucherId == voucher.Id, cancellationToken);
+        if (voucher.UsageLimit.HasValue && totalUsageCount >= voucher.UsageLimit.Value)
+        {
+            return (false, "Mã voucher này đã hết lượt sử dụng.", 0, 0);
+        }
+
+        // Check user use limit (max 1 per account)
+        var isUsedByUser = await _db.VoucherUsages.AnyAsync(u => u.VoucherId == voucher.Id && u.UserId == userId, cancellationToken);
+        if (isUsedByUser)
+        {
+            return (false, "Bạn đã sử dụng mã voucher này rồi.", 0, 0);
+        }
+
+        var plan = await _db.SubscriptionPlans.FindAsync([planId], cancellationToken);
+        if (plan == null)
+        {
+            return (false, "Gói đăng ký không hợp lệ.", 0, 0);
+        }
+
+        decimal discount = 0;
+        if (voucher.DiscountType == DiscountType.Percentage)
+        {
+            discount = plan.Price * (voucher.DiscountValue / 100);
+        }
+        else
+        {
+            discount = voucher.DiscountValue;
+        }
+
+        if (discount > plan.Price)
+        {
+            discount = plan.Price; // Không giảm quá giá trị gói
+        }
+
+        decimal finalAmount = plan.Price - discount;
+        return (true, "Áp dụng voucher thành công!", discount, finalAmount);
     }
 
     public async Task<string> VerifyAndCheckStatusAsync(long orderCode, CancellationToken cancellationToken)
@@ -234,6 +334,31 @@ public sealed class PaymentService : IPaymentService
                 EndDate = endDate,
                 PaymentStatus = "Paid"
             });
+
+            // Ghi nhận VoucherUsage nếu có sử dụng voucher
+            if (payment.VoucherId.HasValue)
+            {
+                var usageExists = await _db.VoucherUsages.AnyAsync(
+                    u => u.PaymentId == payment.Id && u.VoucherId == payment.VoucherId.Value, 
+                    cancellationToken);
+
+                if (!usageExists)
+                {
+                    _db.VoucherUsages.Add(new VoucherUsage
+                    {
+                        VoucherId = payment.VoucherId.Value,
+                        UserId = payment.UserId,
+                        PaymentId = payment.Id,
+                        UsedAt = DateTime.UtcNow
+                    });
+
+                    var voucher = await _db.Vouchers.FindAsync([payment.VoucherId.Value], cancellationToken);
+                    if (voucher != null && voucher.Type == VoucherType.SingleUse)
+                    {
+                        voucher.IsActive = false; // Bị sử dụng là hết hạn luôn
+                    }
+                }
+            }
         }
 
         await _db.SaveChangesAsync(cancellationToken);
